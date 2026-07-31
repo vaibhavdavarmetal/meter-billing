@@ -161,7 +161,12 @@ export default function Admin() {
                       <span style={{ marginLeft: "auto", fontWeight: 700, color: "#3b5b6b" }}>{saved.units} units</span>
                     </div>
                     <div style={{ fontSize: 12, color: "#3f6b4a", marginTop: 6 }}>✓ Billed {saved.savedAt ? new Date(saved.savedAt).toLocaleDateString("en-IN") : ""}</div>
-                    {photoUrl && <a href={photoUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#3b5b6b" }}>View meter photo →</a>}
+                    {photoUrl && (
+                      <div style={{ marginTop: 8 }}>
+                        <img src={photoUrl} alt="meter" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 10, border: "1px solid #e4ddd0", background: "#faf7f0" }} />
+                        <a href={photoUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#3b5b6b" }}>Open full size →</a>
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -190,10 +195,11 @@ export default function Admin() {
                       </div>
                       {mismatch && <div style={flagBox}>⚠ AI and tenant disagree — check the photo before approving.</div>}
                       {photoUrl && (
-                        <a href={photoUrl} target="_blank" rel="noreferrer" style={{ display: "block", margin: "8px 0" }}>
-                          <img src={photoUrl} alt="meter" style={{ width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 10, border: "1px solid #e4ddd0", background: "#faf7f0" }} />
-                          <span style={{ fontSize: 12, color: "#3b5b6b" }}>Tap to enlarge</span>
-                        </a>
+                        <div style={{ margin: "8px 0" }}>
+                          <div style={{ ...lblSm, marginBottom: 4 }}>Meter photo</div>
+                          <img src={photoUrl} alt="meter" style={{ width: "100%", maxHeight: 280, objectFit: "contain", borderRadius: 10, border: "1px solid #e4ddd0", background: "#faf7f0" }} />
+                          <a href={photoUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#3b5b6b" }}>Open full size →</a>
+                        </div>
                       )}
                       <div style={{ display: "flex", gap: 8, alignItems: "flex-end", margin: "8px 0" }}>
                         <div style={{ flex: 1 }}>

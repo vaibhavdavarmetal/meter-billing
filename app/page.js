@@ -1,6 +1,15 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+// Tenants pay for the PREVIOUS month's usage, so show last month.
+function billingMonthLabel() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 function TenantForm() {
   const [slug, setSlug] = useState(null);
   const [tenantName, setTenantName] = useState("");
@@ -97,6 +106,7 @@ function TenantForm() {
     <Card>
       <div style={eyebrow}>Monthly electricity reading</div>
       <h1 style={h1}>{tenantName}</h1>
+      <div style={monthBadge}>Reading for {billingMonthLabel()}</div>
 
       <label style={bigBtn}>
         📷 {photo ? "Retake photo" : "Take a photo of your meter"}
@@ -108,7 +118,7 @@ function TenantForm() {
       )}
 
       {stage === "reading" && (
-        <p style={{ textAlign: "center", color: "#3b5b6b", fontWeight: 600 }}>Reading your meter…</p>
+        <p style={{ color: "#3b5b6b", fontWeight: 600 }}>Reading your meter…</p>
       )}
 
       {stage === "confirm" && (
@@ -145,12 +155,13 @@ export default function Page() {
 // ── inline styles ─────────────────────────────────────────────
 const Card = ({ children }) => (
   <div style={{ maxWidth: 440, margin: "0 auto", padding: "28px 20px", minHeight: "100vh" }}>
-    <div style={{ background: "#fff", border: "1px solid #e4ddd0", borderRadius: 18, padding: 22 }}>{children}</div>
+    <div style={{ background: "#fff", border: "1px solid #e4ddd0", borderRadius: 18, padding: 22, textAlign: "center" }}>{children}</div>
   </div>
 );
 const eyebrow = { fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#a8613c", fontWeight: 700 };
-const h1 = { fontFamily: "Georgia, serif", fontSize: 26, margin: "4px 0 16px" };
+const h1 = { fontFamily: "Georgia, serif", fontSize: 26, margin: "4px 0 8px" };
+const monthBadge = { display: "inline-block", background: "#eef3f5", color: "#3b5b6b", fontSize: 13, fontWeight: 700, borderRadius: 20, padding: "6px 14px", margin: "0 auto 18px" };
 const bigBtn = { display: "block", textAlign: "center", background: "#3b5b6b", color: "#fff", padding: "16px", borderRadius: 12, fontWeight: 700, cursor: "pointer", fontSize: 16 };
 const fieldLabel = { display: "block", fontSize: 12, color: "#8a8375", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "14px 0 6px" };
-const input = { width: "100%", boxSizing: "border-box", border: "1px solid #e4ddd0", borderRadius: 10, padding: "14px", fontSize: 20, fontWeight: 700, background: "#faf7f0" };
+const input = { width: "100%", boxSizing: "border-box", border: "1px solid #e4ddd0", borderRadius: 10, padding: "14px", fontSize: 20, fontWeight: 700, background: "#faf7f0", textAlign: "center" };
 const submitBtn = { width: "100%", marginTop: 16, background: "#3f6b4a", color: "#fff", border: "none", borderRadius: 12, padding: "16px", fontSize: 16, fontWeight: 700, cursor: "pointer" };
