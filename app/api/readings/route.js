@@ -94,16 +94,18 @@ export async function GET(req) {
   const props = await liveProperties();
   const period = searchParams.get("period") || currentPeriod();
   const slugs = allTenantsFrom(props).map((t) => t.slug);
-  const readings = await getPeriodReadings(period, slugs);
-  const bills = await getPeriodBills(period, slugs);
-  const extras = await getPeriodExtras(period, slugs);
-  const approvals = await getPeriodApprovals(period, slugs);
+  const [readings, bills, extras, approvals] = await Promise.all([
+    getPeriodReadings(period, slugs),
+    getPeriodBills(period, slugs),
+    getPeriodExtras(period, slugs),
+    getPeriodApprovals(period, slugs),
+  ]);
 
   const autoPrevious = {};
-  for (const slug of slugs) {
+  await Promise.all(slugs.map(async (slug) => {
     const last = await getLatestBillBefore(period, slug);
     autoPrevious[slug] = last ? last.currentReading : null;
-  }
+  }));
 
   return Response.json({ period, properties: props, readings, bills, extras, approvals, autoPrevious });
 }
