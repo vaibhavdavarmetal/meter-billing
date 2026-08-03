@@ -275,8 +275,11 @@ export default function Admin(){
     return (
       <div style={{...tv,background:"var(--paper)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{width:"100%",maxWidth:340,background:"var(--card)",border:"1px solid var(--line)",borderRadius:16,padding:24,color:"var(--ink)"}}>
-          <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#a8613c",fontWeight:700}}>Rent and electricity management</div>
-          <h1 style={{fontFamily:"Georgia, serif",fontSize:24,margin:"4px 0 18px",color:"var(--ink)"}}>Home admin sign in</h1>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+            <img src="/admin-logo.png" alt="" style={{width:96,height:96,borderRadius:"50%",objectFit:"cover",border:"2px solid var(--line)"}}/>
+          </div>
+          <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#a8613c",fontWeight:700,textAlign:"center"}}>Rent and electricity management</div>
+          <h1 style={{fontFamily:"Georgia, serif",fontSize:24,margin:"4px 0 18px",color:"var(--ink)",textAlign:"center"}}>Home admin sign in</h1>
           <label style={lbl}>Password</label>
           <input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} style={inp} placeholder="Enter admin password" autoFocus/>
           {err&&<p style={{color:"#c0392b",fontSize:14}}>{err}</p>}
