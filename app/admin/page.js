@@ -92,9 +92,13 @@ export default function Admin(){
       const d=await res.json();
       setData(d);
       const sp={}; Object.entries(d.autoPrevious||{}).forEach(([s,v])=>{ if(v!=null) sp[s]=String(v); });
+      // A saved bill's previous reading is authoritative
+      Object.entries(d.bills||{}).forEach(([s,b])=>{ if(b&&b.previousReading!=null) sp[s]=String(b.previousReading); });
       // approvals restore previous/current too
       const ap={};
       Object.entries(d.approvals||{}).forEach(([s,v])=>{ if(v&&v.approved){ ap[s]=true; if(v.previousReading!=null) sp[s]=String(v.previousReading); } });
+      // A saved (unpaid) bill means it was approved — restore that state
+      Object.entries(d.bills||{}).forEach(([s,b])=>{ if(b) ap[s]=true; });
       setPrev(sp); setApproved(ap);
       const ex={};
       Object.entries(d.properties).forEach(([pk,prop])=>{
@@ -391,7 +395,7 @@ export default function Admin(){
             const ai=r&&r.aiReading!=null?r.aiReading:null;
             const isApproved=!!approved[t.slug];
             const ov=override[t.slug];
-            const effective= ov!==undefined&&ov!==""?Number(ov): submitted!=null?submitted: saved?saved.currentReading:null;
+            const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
             const prevV=Number(prev[t.slug]||0);
             const units=effective==null?null:Math.max(0,effective-prevV);
             const mismatch=ai!=null&&submitted!=null&&Number(ai)!==Number(submitted);
@@ -429,12 +433,13 @@ export default function Admin(){
             }
 
             return (
-              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"#a8613c":"#e4ddd0"}}>
+              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"#a8613c":"var(--line)"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <strong>{t.name}</strong>
                   {isApproved?<span style={{fontFamily:"Georgia, serif",fontSize:20,color:"#3f6b4a"}}>{money(total)}</span>
-                    :<span style={{fontSize:13,color:"#8a8375",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
+                    :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
                 </div>
+                {isApproved&&<div style={{fontSize:12,color:"#3f6b4a",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
 
                 {biStatus==="skip"&&(
                   <div style={{background:"#eef3f5",border:"1px solid #cfe0d4",color:"#3b5b6b",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
@@ -466,7 +471,7 @@ export default function Admin(){
                 {/* Readings row — always visible */}
                 <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
                   <div style={{flex:1}}><label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label><input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#faf7f0"}} placeholder="0"/></div>
-                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(submitted??"")} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#fff"}}/></div>
+                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#fff"}}/></div>
                   <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"#3b5b6b"}}>{units??"—"}</div><div style={{fontSize:10,color:"#8a8375"}}>units</div></div>
                 </div>
 
