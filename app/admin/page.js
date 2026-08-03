@@ -347,36 +347,9 @@ export default function Admin(){
 
   // ── BILLING ──
   const renderBilling=()=>{
-    // Who hasn't submitted this month (real tenants only, skip test + bi-monthly skip months)
-    const pending=[];
-    if(data){
-      Object.entries(data.properties).forEach(([pkey,prop])=>{
-        if(prop.isTest) return;
-        prop.tenants.forEach((t)=>{
-          const r=data.readings?data.readings[t.slug]:null;
-          const saved=data.bills?data.bills[t.slug]:null;
-          const bi=biMonthlyStatus(t,period);
-          if(bi==="skip") return; // don't chase in their off month
-          if(!r && !saved) pending.push({t,pkey,propName:prop.name});
-        });
-      });
-    }
     return (
     <>
       {loading&&<p style={{color:"var(--muted)"}}>Loading {label(period)}…</p>}
-
-      {data&&pending.length>0&&(
-        <div style={{...card,borderColor:"#a8613c"}}>
-          <div style={{fontSize:14,fontWeight:700,color:"#a8613c",marginBottom:8}}>Not yet submitted for {label(period)} ({pending.length})</div>
-          {pending.map(({t,propName})=>(
-            <div key={t.slug} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderTop:"1px solid var(--line)"}}>
-              <div style={{flex:1}}><div style={{fontWeight:600}}>{t.name}</div><div style={{fontSize:12,color:"var(--muted)"}}>{propName}{t.phone?"":" · no number saved"}</div></div>
-              <a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700}}>Remind</a>
-            </div>
-          ))}
-          <p style={{fontSize:12,color:"var(--muted)",marginTop:8}}>Tapping Remind opens WhatsApp with the message ready. Add phone numbers on Manage tenants to send directly to each tenant.</p>
-        </div>
-      )}
       {data&&Object.entries(data.properties).map(([pkey,prop])=>(
         <div key={pkey} style={{marginTop:20}}>
           <h2 style={{fontSize:17,display:"flex",alignItems:"center",gap:8}}>
@@ -456,7 +429,13 @@ export default function Admin(){
                     {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"#fff",color:"#a8613c",border:"1px solid #e4ddd0",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
                   </>
                 )}
-                {!hasReading&&<p style={{fontSize:13,color:"#8a8375",margin:"8px 0 0"}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>}
+                {!hasReading&&biStatus!=="skip"&&(
+                  <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
+                    <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
+                    {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
+                  </div>
+                )}
+                {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
 
                 {/* Readings row — always visible */}
                 <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
