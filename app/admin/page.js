@@ -41,10 +41,14 @@ export default function Admin(){
   const [reportBusy,setReportBusy]=useState(false);
 
   // Build a bill record for one tenant (used by manual save AND mark-paid auto-save)
-  const buildBill=(pkey,prop,t)=>{
+  const buildBill=(pkey,prop,t,paidOverride)=>{
     const r=data.readings?data.readings[t.slug]:null;
+    const saved=data.bills?data.bills[t.slug]:null;
     const ov=override[t.slug];
-    const eff= ov!==undefined&&ov!==""?Number(ov):(r?r.reading:null);
+    // Priority: in-session edit → saved bill's reading → tenant's raw submission
+    const eff= ov!==undefined&&ov!==""?Number(ov)
+      : saved&&saved.currentReading!=null?saved.currentReading
+      : (r?r.reading:null);
     const pv=Number(prev[t.slug]||0);
     const u= eff==null?0:Math.max(0,eff-pv);
     const ex=extras[t.slug]||{};
@@ -53,16 +57,18 @@ export default function Admin(){
     const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
     const amount=Math.round(elec+rent+misc+carry);
     const pa= paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""?Number(paidAmt[t.slug]):null;
-    const outstanding= pa!=null? Math.round(amount-pa) : null; // +owed, -credit; carries to next month
+    const outstanding= pa!=null? Math.round(amount-pa) : null;
+    const paidFlag = paidOverride!==undefined ? paidOverride : !!ex.paid;
     return { slug:t.slug, propertyKey:pkey, previousReading:pv, currentReading:eff, units:u,
       electricity:Math.round(elec), rent, misc, carryIn:Math.round(carry), amount,
-      paidAmount:pa, outstanding, paid:!!ex.paid, photoUrl:r?.photoUrl };
+      paidAmount:pa, outstanding, paid:paidFlag, photoUrl:(r&&r.photoUrl)||(saved&&saved.photoUrl)||null };
   };
 
-  // Save one tenant's bill to history (used when marking paid)
-  const saveOneBill=async(pkey,prop,t)=>{
-    const bill=buildBill(pkey,prop,t);
+  // Save one tenant's bill to history; optionally set paid explicitly.
+  const saveOneBill=async(pkey,prop,t,paidOverride)=>{
+    const bill=buildBill(pkey,prop,t,paidOverride);
     try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save-bill",pw,period,bills:[bill]})}); }catch{}
+    return bill;
   };
 
   const [reg,setReg]=useState(null);
@@ -104,11 +110,13 @@ export default function Admin(){
       Object.entries(d.properties).forEach(([pk,prop])=>{
         prop.tenants.forEach((t)=>{
           const e=d.extras&&d.extras[t.slug];
+          const b=d.bills&&d.bills[t.slug];
           ex[t.slug]={
             rent: e&&e.rent!=null?String(e.rent):(t.rent?String(t.rent):""),
             misc: e&&e.misc!=null?String(e.misc):(t.misc?String(t.misc):""),
             miscNote: e?(e.miscNote||""):"",
-            paid: e?!!e.paid:false,
+            // The saved bill's paid flag is authoritative; fall back to extras
+            paid: b&&typeof b.paid==="boolean"?b.paid:(e?!!e.paid:false),
           };
         });
       });
@@ -424,7 +432,12 @@ export default function Admin(){
                   )}
                   <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10}}>
                     <span style={{fontSize:12,color:"#3f6b4a"}}>✓ Paid · billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
-                    <div style={{marginLeft:"auto"}}><PaidSlider on={true} onChange={()=>{ setExtra(t.slug,"paid",false); setTimeout(()=>persistExtra(t.slug),0); }}/></div>
+                    <div style={{marginLeft:"auto"}}><PaidSlider on={true} onChange={async()=>{
+                      setExtra(t.slug,"paid",false);
+                      const bill=await saveOneBill(pkey,prop,t,false);
+                      setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
+                      persistExtra(t.slug);
+                    }}/></div>
                   </div>
                   <div style={{fontSize:11,color:"var(--muted)",marginTop:6,textAlign:"right"}}>Toggle off to mark unpaid & edit</div>
                   {photoUrl&&<div style={{marginTop:8}}><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:240,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
@@ -506,8 +519,13 @@ export default function Admin(){
                       {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"#a8613c":out<0?"#3f6b4a":"#8a8375"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
-                      <span style={{fontSize:13,color:"#8a8375"}}>Mark paid saves to history</span>
-                      <div style={{marginLeft:"auto"}}><PaidSlider on={ex.paid} onChange={(v)=>{ setExtra(t.slug,"paid",v); setTimeout(async()=>{ await persistExtra(t.slug); if(v){ await saveOneBill(pkey,prop,t); await fetchPeriod(period,pw); } },0); }}/></div>
+                      <span style={{fontSize:13,color:"var(--muted)"}}>Mark paid saves to history</span>
+                      <div style={{marginLeft:"auto"}}><PaidSlider on={ex.paid} onChange={async(v)=>{
+                        setExtra(t.slug,"paid",v);
+                        const bill=await saveOneBill(pkey,prop,t,v);
+                        setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
+                        persistExtra(t.slug);
+                      }}/></div>
                     </div>
                   </div>
                 )}
