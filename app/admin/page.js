@@ -258,6 +258,16 @@ export default function Admin(){
     const p=shiftPeriod(thisPeriod(),-1); return label(p);
   }
 
+  // Build the full welcome message for a tenant, including their real link.
+  const tenantLink=(slug)=>{
+    const base = typeof window!=="undefined" ? window.location.origin : "";
+    return `${base}/?t=${slug}`;
+  };
+  const welcomeText=(tName,slug)=>{
+    const link=tenantLink(slug);
+    return `Namaste ${tName} 🙏\n\nFrom this month onwards, please send your electricity meter reading yourself through this link — it takes less than a minute each month.\n\nYour personal link:\n${link}\n\nPlease send your reading in the first week of every month.\n\nHow to use:\n1. Open the link\n2. Tap "Take a photo of your meter" and photograph it clearly\n3. Check the reading matches your meter, correct if needed\n4. Tap Submit\n\nPlease double-check before submitting — you can only submit once each month.\n\nTo save the link on your phone:\nAndroid (Chrome): open link → tap ⋮ (top right) → Add to Home screen\niPhone (Safari): open link → tap Share → Add to Home Screen\n\nAny trouble, message me. Thank you! 🙏`;
+  };
+
   if(!authed){
     const tv = theme==="dark"
       ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
@@ -333,6 +343,11 @@ export default function Admin(){
                     <label style={lblSm}>First billing month (YYYY-MM)</label>
                     <input value={t.biMonthlyStart||"2026-08"} onChange={e=>setTen(pk,i,"biMonthlyStart",e.target.value)} style={{...inpSm,width:130}} placeholder="2026-08"/>
                   </div>
+                )}
+                {!prop.isTest&&(
+                  <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{display:"block",textAlign:"center",background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700,marginTop:10}}>
+                    Send link + instructions on WhatsApp{t.phone?"":" (pick contact)"}
+                  </a>
                 )}
               </div>
             ))}
