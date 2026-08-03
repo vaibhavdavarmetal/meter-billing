@@ -1,34 +1,38 @@
 import { put } from "@vercel/blob";
-import { saveReading, getPeriodReadings, saveBill, getPeriodBills, getLatestBillBefore } from "../../../lib/store";
-import { findTenant, allTenants, PROPERTIES, ADMIN_PASSWORD } from "../../../lib/config";
+import {
+  saveReading, getPeriodReadings, saveBill, getPeriodBills, getLatestBillBefore,
+  getPeriodExtras, saveExtras,
+} from "../../../lib/store";
+import { ADMIN_PASSWORD } from "../../../lib/config";
+import { liveProperties, allTenantsFrom, findTenantIn } from "../../../lib/registry";
 
 export const runtime = "nodejs";
 
-// Current billing period, e.g. "2026-07"
 function currentPeriod() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// POST handles two things:
-//  - tenant submitting a reading (default)
-//  - admin saving an approved bill: { action:"save-bill", pw, period, bills:[...] }
 export async function POST(req) {
   try {
     const body = await req.json();
+    const props = await liveProperties();
 
     // Admin saving approved bills for a month
     if (body.action === "save-bill") {
       if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
       const period = body.period || currentPeriod();
       for (const b of body.bills || []) {
-        if (!findTenant(b.slug)) continue;
+        if (!findTenantIn(props, b.slug)) continue;
         await saveBill(period, b.slug, {
           slug: b.slug,
           propertyKey: b.propertyKey,
           previousReading: b.previousReading,
           currentReading: b.currentReading,
           units: b.units,
+          electricity: b.electricity,
+          rent: b.rent,
+          misc: b.misc,
           amount: b.amount,
           photoUrl: b.photoUrl || null,
           savedAt: new Date().toISOString(),
@@ -37,11 +41,27 @@ export async function POST(req) {
       return Response.json({ ok: true, period });
     }
 
+    // Admin saving per-month extras (rent/misc/paid) live as they edit
+    if (body.action === "save-extras") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      const period = body.period || currentPeriod();
+      const e = body.extras || {};
+      if (!findTenantIn(props, body.slug)) return Response.json({ error: "Unknown tenant" }, { status: 404 });
+      await saveExtras(period, body.slug, {
+        rent: e.rent != null ? Number(e.rent) : null,
+        misc: e.misc != null ? Number(e.misc) : null,
+        miscNote: e.miscNote || "",
+        paid: !!e.paid,
+        updatedAt: new Date().toISOString(),
+      });
+      return Response.json({ ok: true });
+    }
+
     // Tenant submitting a reading
     const { slug, reading, imageBase64, mediaType } = body;
     const period = body.period || currentPeriod();
 
-    const found = findTenant(slug);
+    const found = findTenantIn(props, slug);
     if (!found) return Response.json({ error: "Unknown tenant" }, { status: 404 });
 
     let photoUrl = null;
@@ -70,18 +90,18 @@ export async function POST(req) {
   }
 }
 
-// Admin fetches all data for a period: /api/readings?period=2026-07&pw=...
-// Returns: live readings (this month's submissions), saved bills (history),
-// and an auto "previous" reading pulled from each tenant's last saved bill.
+// Admin fetches all data for a period.
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const pw = searchParams.get("pw");
   if (pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const props = await liveProperties();
   const period = searchParams.get("period") || currentPeriod();
-  const slugs = allTenants().map((t) => t.slug);
+  const slugs = allTenantsFrom(props).map((t) => t.slug);
   const readings = await getPeriodReadings(period, slugs);
   const bills = await getPeriodBills(period, slugs);
+  const extras = await getPeriodExtras(period, slugs);
 
   const autoPrevious = {};
   for (const slug of slugs) {
@@ -89,5 +109,5 @@ export async function GET(req) {
     autoPrevious[slug] = last ? last.currentReading : null;
   }
 
-  return Response.json({ period, properties: PROPERTIES, readings, bills, autoPrevious });
+  return Response.json({ period, properties: props, readings, bills, extras, autoPrevious });
 }
