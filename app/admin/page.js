@@ -231,7 +231,16 @@ export default function Admin(){
     try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save-approval",pw,period,slug,approval:isApproved,previousReading:prevV,currentReading:currV})}); }catch{}
   };
 
-  const doApprove=(slug,prevV,currV)=>{ setApproved(a=>({...a,[slug]:true})); persistApproval(slug,true,prevV,currV); setConfirmSlug(null); };
+  const doApprove=(slug,prevV,currV)=>{
+    setApproved(a=>({...a,[slug]:true}));
+    persistApproval(slug,true,prevV,currV);
+    // Also save the full bill immediately so edits survive a refresh
+    for(const [pkey,prop] of Object.entries(data.properties)){
+      const t=prop.tenants.find(x=>x.slug===slug);
+      if(t){ saveOneBill(pkey,prop,t); break; }
+    }
+    setConfirmSlug(null);
+  };
   const unApprove=(slug)=>{ setApproved(a=>({...a,[slug]:false})); persistApproval(slug,false); };
 
   const resetSubmission=async(slug)=>{
@@ -395,24 +404,25 @@ export default function Admin(){
             const total= elec==null?null: elec+rent+misc+carry;
             const biStatus=biMonthlyStatus(t,period);
 
-            if(saved){
+            if(saved && ex.paid){
               return (
                 <div key={t.slug} style={{...card,borderColor:"#cfe0d4"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <strong>{t.name}</strong>
                     <span style={{fontFamily:"Georgia, serif",fontSize:20,color:"#3f6b4a"}}>{money(saved.amount)}</span>
                   </div>
-                  <div style={{fontSize:13,color:"#8a8375",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
-                  <div style={{fontSize:12,color:"#8a8375",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
+                  <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
+                  <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
                   {saved.paidAmount!=null&&(
-                    <div style={{fontSize:13,marginTop:6,color: (saved.outstanding||0)>0?"#a8613c":(saved.outstanding||0)<0?"#3f6b4a":"#8a8375"}}>
+                    <div style={{fontSize:13,marginTop:6,color: (saved.outstanding||0)>0?"#a8613c":(saved.outstanding||0)<0?"#3f6b4a":"var(--muted)"}}>
                       Paid {money(saved.paidAmount)} · {(saved.outstanding||0)>0?`Short ${money(saved.outstanding)} (carries to next month)`:(saved.outstanding||0)<0?`Overpaid ${money(-saved.outstanding)} (credit next month)`:"Settled exactly"}
                     </div>
                   )}
                   <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10}}>
-                    <span style={{fontSize:12,color:"#3f6b4a"}}>✓ Billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
-                    <div style={{marginLeft:"auto"}}><PaidSlider on={ex.paid} onChange={(v)=>{ setExtra(t.slug,"paid",v); setTimeout(()=>persistExtra(t.slug),0); }}/></div>
+                    <span style={{fontSize:12,color:"#3f6b4a"}}>✓ Paid · billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
+                    <div style={{marginLeft:"auto"}}><PaidSlider on={true} onChange={()=>{ setExtra(t.slug,"paid",false); setTimeout(()=>persistExtra(t.slug),0); }}/></div>
                   </div>
+                  <div style={{fontSize:11,color:"var(--muted)",marginTop:6,textAlign:"right"}}>Toggle off to mark unpaid & edit</div>
                   {photoUrl&&<div style={{marginTop:8}}><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:240,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
                 </div>
               );
@@ -437,11 +447,9 @@ export default function Admin(){
 
                 {hasReading&&(
                   <>
-                    <div style={{display:"flex",gap:10,margin:"10px 0"}}>
-                      <div style={compareBox}><div style={lblSm}>AI read</div><div style={{fontSize:18,fontWeight:700}}>{ai??"—"}</div></div>
-                      <div style={compareBox}><div style={lblSm}>Tenant typed</div><div style={{fontSize:18,fontWeight:700}}>{submitted??"—"}</div></div>
+                    <div style={{margin:"10px 0"}}>
+                      <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
                     </div>
-                    {mismatch&&<div style={flagBox}>⚠ AI and tenant disagree — check the photo before approving.</div>}
                     {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
                     {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"#a8613c",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
                     {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"#fff",color:"#a8613c",border:"1px solid #e4ddd0",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}

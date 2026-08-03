@@ -46,30 +46,13 @@ function TenantForm() {
     if (!file) return;
     setErr("");
     const reader = new FileReader();
-    reader.onload = async () => {
+    reader.onload = () => {
       const dataUrl = reader.result;
       const base64 = String(dataUrl).split(",")[1];
       setPhoto(base64);
       setMediaType(file.type || "image/jpeg");
       setPreview(dataUrl);
-      setStage("reading");
-      // Ask Claude to read it
-      try {
-        const res = await fetch("/api/read-meter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
-        });
-        const data = await res.json();
-        setAiReading(data.reading);
-        setConfidence(data.confidence);
-        setReading(data.reading != null ? String(data.reading) : "");
-        setStage("confirm");
-      } catch {
-        setAiReading(null);
-        setConfidence("low");
-        setStage("confirm");
-      }
+      setStage("confirm"); // go straight to manual entry, no AI
     };
     reader.readAsDataURL(file);
   };
@@ -86,7 +69,7 @@ function TenantForm() {
       const res = await fetch("/api/readings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, reading, aiReading, aiConfidence: confidence, imageBase64: photo, mediaType }),
+        body: JSON.stringify({ slug, reading, imageBase64: photo, mediaType }),
       });
       if (res.status === 409) {
         const d = await res.json().catch(() => ({}));
@@ -153,21 +136,11 @@ function TenantForm() {
         <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 12, margin: "14px 0", border: "1px solid #e4ddd0" }} />
       )}
 
-      {stage === "reading" && (
-        <p style={{ color: "#3b5b6b", fontWeight: 600 }}>Reading your meter…</p>
-      )}
-
       {stage === "confirm" && (
         <div>
-          {aiReading != null ? (
-            <p style={{ color: "#3f6b4a", fontWeight: 600 }}>
-              We read <strong>{aiReading}</strong>{confidence !== "high" && " — please double-check it's right"}.
-            </p>
-          ) : (
-            <p style={{ color: "#a8613c", fontWeight: 600 }}>
-              We couldn't read it clearly. Please type the number from your meter.
-            </p>
-          )}
+          <p style={{ color: "#3b5b6b", fontWeight: 600 }}>
+            Please type the number shown on your meter.
+          </p>
           <label style={fieldLabel}>Meter number</label>
           <input
             inputMode="numeric"
