@@ -7,6 +7,19 @@ const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov",
 function label(p){ const [y,m]=p.split("-").map(Number); return `${MONTHS[m-1]} ${y}`; }
 function shiftPeriod(p,d){ let [y,m]=p.split("-").map(Number); m+=d; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return `${y}-${String(m).padStart(2,"0")}`; }
 function slugify(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,""); }
+function monthsBetween(fromPeriod,toPeriod){
+  const [fy,fm]=fromPeriod.split("-").map(Number);
+  const [ty,tm]=toPeriod.split("-").map(Number);
+  return (ty-fy)*12+(tm-fm);
+}
+// For a bi-monthly tenant: is this period a billing month (even offset from start) or a skip month?
+function biMonthlyStatus(tenant,period){
+  if(!tenant.biMonthly) return null;
+  const start=tenant.biMonthlyStart||"2026-08";
+  const diff=monthsBetween(start,period);
+  if(diff<0) return null; // before their cycle begins
+  return diff%2===0 ? "bill" : "skip";
+}
 
 export default function Admin(){
   const [pw,setPw]=useState("");
@@ -61,6 +74,14 @@ export default function Admin(){
   const [staffCarry,setStaffCarry]=useState({});
   const [staffPaid,setStaffPaid]=useState({});
   const [staffMsg,setStaffMsg]=useState("");
+
+  const [theme,setTheme]=useState("dark"); // dark by default
+  const [photoView,setPhotoView]=useState(null); // url of photo to preview full-screen
+
+  useEffect(()=>{
+    try{ const t=window.localStorage.getItem("admin-theme"); if(t) setTheme(t); }catch{}
+  },[]);
+  const toggleTheme=()=>{ const t=theme==="dark"?"light":"dark"; setTheme(t); try{ window.localStorage.setItem("admin-theme",t); }catch{} };
 
   const fetchPeriod=useCallback(async(p,password)=>{
     setLoading(true); setErr("");
@@ -228,11 +249,14 @@ export default function Admin(){
   };
 
   if(!authed){
+    const tv = theme==="dark"
+      ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
+      : { "--paper":"#faf7f0","--card":"#ffffff","--ink":"#1f2421","--muted":"#8a8375","--line":"#e4ddd0","--field":"#faf7f0","--slate":"#3b5b6b" };
     return (
-      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-        <div style={{width:"100%",maxWidth:340,background:"#fff",border:"1px solid #e4ddd0",borderRadius:16,padding:24}}>
+      <div style={{...tv,background:"var(--paper)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{width:"100%",maxWidth:340,background:"var(--card)",border:"1px solid var(--line)",borderRadius:16,padding:24,color:"var(--ink)"}}>
           <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#a8613c",fontWeight:700}}>Rent and electricity management</div>
-          <h1 style={{fontFamily:"Georgia, serif",fontSize:24,margin:"4px 0 18px"}}>Home admin sign in</h1>
+          <h1 style={{fontFamily:"Georgia, serif",fontSize:24,margin:"4px 0 18px",color:"var(--ink)"}}>Home admin sign in</h1>
           <label style={lbl}>Password</label>
           <input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} style={inp} placeholder="Enter admin password" autoFocus/>
           {err&&<p style={{color:"#c0392b",fontSize:14}}>{err}</p>}
@@ -252,7 +276,7 @@ export default function Admin(){
     const save=async()=>{
       setRegMsg("");
       const fixed=structuredClone(reg);
-      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; }); });
+      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; t.biMonthly=!!t.biMonthly; if(t.biMonthly&&!t.biMonthlyStart) t.biMonthlyStart="2026-08"; }); });
       try{
         const res=await fetch("/api/registry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,properties:fixed})});
         const d=await res.json();
@@ -284,6 +308,18 @@ export default function Admin(){
                   <div style={{width:110}}><label style={lblSm}>July start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
                   {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"#fff",color:"#c0392b",border:"1px solid #e4ddd0",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
                 </div>
+                {!prop.isTest&&(
+                  <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"#3b5b6b",cursor:"pointer"}}>
+                    <input type="checkbox" checked={!!t.biMonthly} onChange={e=>setTen(pk,i,"biMonthly",e.target.checked)}/>
+                    Electricity billed every 2 months (bi-monthly)
+                  </label>
+                )}
+                {t.biMonthly&&(
+                  <div style={{marginTop:6}}>
+                    <label style={lblSm}>First billing month (YYYY-MM)</label>
+                    <input value={t.biMonthlyStart||"2026-08"} onChange={e=>setTen(pk,i,"biMonthlyStart",e.target.value)} style={{...inpSm,width:130}} placeholder="2026-08"/>
+                  </div>
+                )}
               </div>
             ))}
             {!prop.isTest&&<button onClick={()=>addTen(pk)} style={{...btn,background:"#eef3f5",color:"#3b5b6b",marginTop:8}}>+ Add tenant to {prop.name}</button>}
@@ -324,6 +360,7 @@ export default function Admin(){
             const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
             const elec= effective==null?null: units*(Number(prop.rate)||0);
             const total= elec==null?null: elec+rent+misc+carry;
+            const biStatus=biMonthlyStatus(t,period);
 
             if(saved){
               return (
@@ -343,7 +380,7 @@ export default function Admin(){
                     <span style={{fontSize:12,color:"#3f6b4a"}}>✓ Billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
                     <div style={{marginLeft:"auto"}}><PaidSlider on={ex.paid} onChange={(v)=>{ setExtra(t.slug,"paid",v); setTimeout(()=>persistExtra(t.slug),0); }}/></div>
                   </div>
-                  {photoUrl&&<div style={{marginTop:8}}><img src={photoUrl} alt="meter" style={{width:"100%",maxHeight:240,objectFit:"contain",borderRadius:10,border:"1px solid #e4ddd0",background:"#faf7f0"}}/></div>}
+                  {photoUrl&&<div style={{marginTop:8}}><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:240,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
                 </div>
               );
             }
@@ -356,6 +393,15 @@ export default function Admin(){
                     :<span style={{fontSize:13,color:"#8a8375",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
                 </div>
 
+                {biStatus==="skip"&&(
+                  <div style={{background:"#eef3f5",border:"1px solid #cfe0d4",color:"#3b5b6b",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
+                    ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
+                  </div>
+                )}
+                {biStatus==="bill"&&(
+                  <div style={{fontSize:12,color:"#3f6b4a",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
+                )}
+
                 {hasReading&&(
                   <>
                     <div style={{display:"flex",gap:10,margin:"10px 0"}}>
@@ -363,7 +409,7 @@ export default function Admin(){
                       <div style={compareBox}><div style={lblSm}>Tenant typed</div><div style={{fontSize:18,fontWeight:700}}>{submitted??"—"}</div></div>
                     </div>
                     {mismatch&&<div style={flagBox}>⚠ AI and tenant disagree — check the photo before approving.</div>}
-                    {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid #e4ddd0",background:"#faf7f0"}}/></div>}
+                    {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
                     {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"#a8613c",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
                     {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"#fff",color:"#a8613c",border:"1px solid #e4ddd0",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
                   </>
@@ -453,40 +499,62 @@ export default function Admin(){
     </>
   );
 
+  const themeVars = theme==="dark"
+    ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
+    : { "--paper":"#faf7f0","--card":"#ffffff","--ink":"#1f2421","--muted":"#8a8375","--line":"#e4ddd0","--field":"#faf7f0","--slate":"#3b5b6b" };
+
   return (
-    <div style={{maxWidth:560,margin:"0 auto",padding:"20px 16px 48px"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-        <h1 style={{fontFamily:"Georgia, serif",fontSize:22,margin:0}}>{view==="billing"?"Billing":view==="manage"?"Manage tenants":"House help"}</h1>
+    <div style={{...themeVars, background:"var(--paper)", color:"var(--ink)", minHeight:"100vh"}}>
+      <style>{`
+        .admin-wrap ::placeholder{ color: var(--muted); opacity:.7; }
+        .admin-wrap input[type=checkbox]{ accent-color: var(--slate); }
+      `}</style>
+      <div className="admin-wrap" style={{maxWidth:560,margin:"0 auto",padding:"20px 16px 48px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+          <h1 style={{fontFamily:"Georgia, serif",fontSize:22,margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Manage tenants":"House help"}</h1>
+          <button onClick={toggleTheme} aria-label="Toggle theme" style={{border:"1px solid var(--line)",background:"var(--card)",color:"var(--ink)",borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+            {theme==="dark"?"☀ Light":"🌙 Dark"}
+          </button>
+        </div>
+
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <button onClick={()=>setView("billing")} style={{...tabBtn,...(view==="billing"?tabActive:{})}}>Billing</button>
+          <button onClick={openManage} style={{...tabBtn,...(view==="manage"?tabActive:{})}}>Tenants</button>
+          <button onClick={openStaff} style={{...tabBtn,...(view==="staff"?tabActive:{})}}>House help</button>
+        </div>
+
         {(view==="billing"||view==="staff")&&(
-          <div style={{display:"flex",alignItems:"center",gap:4,background:"#fff",border:"1px solid #e4ddd0",borderRadius:10,padding:4}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,padding:4,marginBottom:16}}>
             <button onClick={async()=>{ const p=shiftPeriod(period,-1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Previous month">‹</button>
-            <div style={{fontSize:14,fontWeight:600,minWidth:84,textAlign:"center"}}>{label(period)}</div>
+            <div style={{fontSize:14,fontWeight:600,minWidth:120,textAlign:"center"}}>{label(period)}</div>
             <button onClick={async()=>{ const p=shiftPeriod(period,1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Next month">›</button>
           </div>
         )}
-      </div>
 
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        <button onClick={()=>setView("billing")} style={{...tabBtn,...(view==="billing"?tabActive:{})}}>Billing</button>
-        <button onClick={openManage} style={{...tabBtn,...(view==="manage"?tabActive:{})}}>Tenants</button>
-        <button onClick={openStaff} style={{...tabBtn,...(view==="staff"?tabActive:{})}}>House help</button>
-      </div>
+        {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
 
-      {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
-
-      {/* Approve confirmation dialog */}
-      {confirmSlug&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(31,36,33,0.45)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmSlug(null)}>
-          <div style={{background:"#fff",borderRadius:16,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
-            <h3 style={{margin:"0 0 8px",fontFamily:"Georgia, serif"}}>Approve this bill?</h3>
-            <p style={{fontSize:14,color:"#8a8375",margin:"0 0 18px"}}>Once approved, you can send it on WhatsApp and mark it paid. You can still tap Edit to change it.</p>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setConfirmSlug(null)} style={{...btn,background:"#fff",color:"#3b5b6b",border:"1px solid #e4ddd0",marginTop:0}}>Cancel</button>
-              <button onClick={()=>{ const s=confirmSlug; const pv=Number(prev[s]||0); const r=data.readings?data.readings[s]:null; const ov=override[s]; const cv= ov!==undefined&&ov!==""?Number(ov):(r?r.reading:null); doApprove(s,pv,cv); }} style={{...btn,background:"#3f6b4a",marginTop:0}}>Approve</button>
+        {/* Approve confirmation dialog */}
+        {confirmSlug&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmSlug(null)}>
+            <div style={{background:"var(--card)",color:"var(--ink)",borderRadius:16,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <h3 style={{margin:"0 0 8px",fontFamily:"Georgia, serif"}}>Approve this bill?</h3>
+              <p style={{fontSize:14,color:"var(--muted)",margin:"0 0 18px"}}>Once approved, you can send it on WhatsApp and mark it paid. You can still tap Edit to change it.</p>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setConfirmSlug(null)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
+                <button onClick={()=>{ const s=confirmSlug; const pv=Number(prev[s]||0); const r=data.readings?data.readings[s]:null; const ov=override[s]; const cv= ov!==undefined&&ov!==""?Number(ov):(r?r.reading:null); doApprove(s,pv,cv); }} style={{...btn,background:"#3f6b4a",marginTop:0}}>Approve</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Full-screen photo preview */}
+        {photoView&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:16,zIndex:60}} onClick={()=>setPhotoView(null)}>
+            <img src={photoView} alt="meter full" style={{maxWidth:"100%",maxHeight:"90vh",objectFit:"contain",borderRadius:8}}/>
+            <button onClick={()=>setPhotoView(null)} aria-label="Close" style={{position:"absolute",top:16,right:16,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:20,width:40,height:40,fontSize:20,cursor:"pointer"}}>✕</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -502,14 +570,14 @@ function PaidSlider({on,onChange}){
   );
 }
 
-const lbl={display:"block",fontSize:12,color:"#8a8375",fontWeight:700,margin:"10px 0 4px",textTransform:"uppercase",letterSpacing:.5};
-const lblSm={display:"block",fontSize:10,color:"#8a8375",fontWeight:700,marginBottom:2,textTransform:"uppercase"};
-const inp={width:"100%",boxSizing:"border-box",border:"1px solid #e4ddd0",borderRadius:8,padding:12,fontSize:16,background:"#faf7f0"};
-const inpSm={width:"100%",boxSizing:"border-box",border:"1px solid #e4ddd0",borderRadius:8,padding:8,fontSize:15,background:"#faf7f0"};
-const btn={width:"100%",background:"#1f2421",color:"#fff",border:"none",borderRadius:10,padding:14,fontWeight:700,cursor:"pointer",marginTop:10};
-const stepBtn={border:"none",background:"transparent",fontSize:20,width:30,height:30,cursor:"pointer",color:"#3b5b6b",borderRadius:6};
-const card={background:"#fff",border:"1px solid #e4ddd0",borderRadius:12,padding:14,marginTop:10};
-const compareBox={flex:1,textAlign:"center",background:"#faf7f0",border:"1px solid #e4ddd0",borderRadius:10,padding:"8px 6px"};
+const lbl={display:"block",fontSize:12,color:"var(--muted)",fontWeight:700,margin:"10px 0 4px",textTransform:"uppercase",letterSpacing:.5};
+const lblSm={display:"block",fontSize:10,color:"var(--muted)",fontWeight:700,marginBottom:2,textTransform:"uppercase"};
+const inp={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:8,padding:12,fontSize:16,background:"var(--field)",color:"var(--ink)"};
+const inpSm={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:8,padding:8,fontSize:15,background:"var(--field)",color:"var(--ink)"};
+const btn={width:"100%",background:"var(--ink)",color:"var(--paper)",border:"none",borderRadius:10,padding:14,fontWeight:700,cursor:"pointer",marginTop:10};
+const stepBtn={border:"none",background:"transparent",fontSize:20,width:30,height:30,cursor:"pointer",color:"var(--slate)",borderRadius:6};
+const card={background:"var(--card)",border:"1px solid var(--line)",borderRadius:12,padding:14,marginTop:10};
+const compareBox={flex:1,textAlign:"center",background:"var(--field)",border:"1px solid var(--line)",borderRadius:10,padding:"8px 6px",color:"var(--ink)"};
 const flagBox={background:"#f7ede4",border:"1px solid #a8613c",color:"#8a4a24",borderRadius:8,padding:"8px 10px",fontSize:13,fontWeight:600,margin:"4px 0"};
-const tabBtn={flex:1,padding:"10px",borderRadius:10,border:"1px solid #e4ddd0",background:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",color:"#8a8375"};
-const tabActive={background:"#3b5b6b",color:"#fff",borderColor:"#3b5b6b"};
+const tabBtn={flex:1,padding:"10px",borderRadius:10,border:"1px solid var(--line)",background:"var(--card)",fontWeight:700,fontSize:14,cursor:"pointer",color:"var(--muted)"};
+const tabActive={background:"var(--slate)",color:"#fff",borderColor:"var(--slate)"};
