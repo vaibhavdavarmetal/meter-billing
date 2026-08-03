@@ -248,6 +248,16 @@ export default function Admin(){
     s+=`\nTotal payable: ${money(total)}`; return s;
   };
 
+  // Build a WhatsApp URL — direct to the tenant's number if we have it, else contact-picker.
+  const waUrl=(phone,text)=>{
+    const clean=(phone||"").replace(/[^0-9]/g,"");
+    return clean ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
+  const reminderText=(tName)=>`Namaste ${tName} 🙏\nReminder: please send your electricity meter reading for ${billLabel()} using your personal link. It takes less than a minute. Thank you!`;
+  function billLabel(){ // the month tenants are reading FOR (previous month)
+    const p=shiftPeriod(thisPeriod(),-1); return label(p);
+  }
+
   if(!authed){
     const tv = theme==="dark"
       ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
@@ -276,7 +286,7 @@ export default function Admin(){
     const save=async()=>{
       setRegMsg("");
       const fixed=structuredClone(reg);
-      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; t.biMonthly=!!t.biMonthly; if(t.biMonthly&&!t.biMonthlyStart) t.biMonthlyStart="2026-08"; }); });
+      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; t.biMonthly=!!t.biMonthly; if(t.biMonthly&&!t.biMonthlyStart) t.biMonthlyStart="2026-08"; t.phone=(t.phone||"").replace(/[^0-9]/g,""); }); });
       try{
         const res=await fetch("/api/registry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,properties:fixed})});
         const d=await res.json();
@@ -302,6 +312,10 @@ export default function Admin(){
                   <div style={{flex:1}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
                   <div style={{width:84}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
                   <div style={{width:84}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={t.misc??""} onChange={e=>setTen(pk,i,"misc",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
+                </div>
+                <div style={{marginBottom:6}}>
+                  <label style={lblSm}>WhatsApp number (with country code, e.g. 919812345678)</label>
+                  <input inputMode="tel" value={t.phone||""} onChange={e=>setTen(pk,i,"phone",e.target.value.replace(/[^0-9]/g,""))} style={inpSm} placeholder="91XXXXXXXXXX"/>
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
                   <div style={{flex:1}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"monospace"}}/></div>
@@ -332,9 +346,37 @@ export default function Admin(){
   };
 
   // ── BILLING ──
-  const renderBilling=()=>(
+  const renderBilling=()=>{
+    // Who hasn't submitted this month (real tenants only, skip test + bi-monthly skip months)
+    const pending=[];
+    if(data){
+      Object.entries(data.properties).forEach(([pkey,prop])=>{
+        if(prop.isTest) return;
+        prop.tenants.forEach((t)=>{
+          const r=data.readings?data.readings[t.slug]:null;
+          const saved=data.bills?data.bills[t.slug]:null;
+          const bi=biMonthlyStatus(t,period);
+          if(bi==="skip") return; // don't chase in their off month
+          if(!r && !saved) pending.push({t,pkey,propName:prop.name});
+        });
+      });
+    }
+    return (
     <>
-      {loading&&<p style={{color:"#8a8375"}}>Loading {label(period)}…</p>}
+      {loading&&<p style={{color:"var(--muted)"}}>Loading {label(period)}…</p>}
+
+      {data&&pending.length>0&&(
+        <div style={{...card,borderColor:"#a8613c"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#a8613c",marginBottom:8}}>Not yet submitted for {label(period)} ({pending.length})</div>
+          {pending.map(({t,propName})=>(
+            <div key={t.slug} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderTop:"1px solid var(--line)"}}>
+              <div style={{flex:1}}><div style={{fontWeight:600}}>{t.name}</div><div style={{fontSize:12,color:"var(--muted)"}}>{propName}{t.phone?"":" · no number saved"}</div></div>
+              <a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700}}>Remind</a>
+            </div>
+          ))}
+          <p style={{fontSize:12,color:"var(--muted)",marginTop:8}}>Tapping Remind opens WhatsApp with the message ready. Add phone numbers on Manage tenants to send directly to each tenant.</p>
+        </div>
+      )}
       {data&&Object.entries(data.properties).map(([pkey,prop])=>(
         <div key={pkey} style={{marginTop:20}}>
           <h2 style={{fontSize:17,display:"flex",alignItems:"center",gap:8}}>
@@ -446,7 +488,7 @@ export default function Admin(){
                     <div style={{fontSize:13,color:"#8a8375",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"#1f2421"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"#fff",color:"#3b5b6b",border:"1px solid #e4ddd0",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
-                      <a href={`https://wa.me/?text=${encodeURIComponent(waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry))}`} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"#3f6b4a",marginTop:0}}>Send bill on WhatsApp</a>
+                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"#3f6b4a",marginTop:0}}>Send bill on WhatsApp</a>
                     </div>
                     <div style={{marginTop:12}}>
                       <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
@@ -497,7 +539,8 @@ export default function Admin(){
         </div>
       )}
     </>
-  );
+    );
+  };
 
   const themeVars = theme==="dark"
     ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
