@@ -308,8 +308,8 @@ export default function Admin(){
 
   if(!authed){
     const tv = theme==="dark"
-      ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
-      : { "--paper":"#faf7f0","--card":"#ffffff","--ink":"#1f2421","--muted":"#8a8375","--line":"#e4ddd0","--field":"#faf7f0","--slate":"#3b5b6b" };
+      ? { "--paper":"#16191a","--card":"#20262a","--ink":"#eef1f2","--muted":"#9aa3a7","--line":"#333b40","--field":"#272e33","--slate":"#7fb2c9","--accent":"#c98a5c","--good":"#5fa877","--shadow":"0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)" }
+      : { "--paper":"#f6f2ea","--card":"#ffffff","--ink":"#232826","--muted":"#8a857a","--line":"#e7e0d4","--field":"#f6f2ea","--slate":"#3b6478","--accent":"#b06a3c","--good":"#3f7a52","--shadow":"0 1px 3px rgba(60,50,30,0.08), 0 1px 2px rgba(60,50,30,0.04)" };
     return (
       <div style={{...tv,background:"var(--paper)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{width:"100%",maxWidth:340,background:"var(--card)",border:"1px solid var(--line)",borderRadius:16,padding:24,color:"var(--ink)"}}>
@@ -635,14 +635,18 @@ export default function Admin(){
   };
 
   const themeVars = theme==="dark"
-    ? { "--paper":"#1a1d1b","--card":"#242926","--ink":"#f0ede6","--muted":"#9a978d","--line":"#3a403b","--field":"#2c322e","--slate":"#6b93a6" }
-    : { "--paper":"#faf7f0","--card":"#ffffff","--ink":"#1f2421","--muted":"#8a8375","--line":"#e4ddd0","--field":"#faf7f0","--slate":"#3b5b6b" };
+    ? { "--paper":"#16191a","--card":"#20262a","--ink":"#eef1f2","--muted":"#9aa3a7","--line":"#333b40","--field":"#272e33","--slate":"#7fb2c9","--accent":"#c98a5c","--good":"#5fa877","--shadow":"0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)" }
+    : { "--paper":"#f6f2ea","--card":"#ffffff","--ink":"#232826","--muted":"#8a857a","--line":"#e7e0d4","--field":"#f6f2ea","--slate":"#3b6478","--accent":"#b06a3c","--good":"#3f7a52","--shadow":"0 1px 3px rgba(60,50,30,0.08), 0 1px 2px rgba(60,50,30,0.04)" };
 
   return (
     <div style={{...themeVars, background:"var(--paper)", color:"var(--ink)", minHeight:"100vh"}}>
       <style>{`
-        .admin-wrap ::placeholder{ color: var(--muted); opacity:.7; }
+        .admin-wrap ::placeholder{ color: var(--muted); opacity:.6; }
         .admin-wrap input[type=checkbox]{ accent-color: var(--slate); }
+        .admin-wrap input:focus, .admin-wrap textarea:focus{ outline:none; border-color: var(--slate); box-shadow:0 0 0 3px color-mix(in srgb, var(--slate) 18%, transparent); }
+        .admin-wrap button{ transition: filter .15s, transform .05s; }
+        .admin-wrap button:active{ transform: translateY(1px); }
+        .admin-wrap a, .admin-wrap button{ -webkit-tap-highlight-color: transparent; }
       `}</style>
       <div className="admin-wrap" style={{maxWidth:560,margin:"0 auto",padding:"20px 16px 48px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
@@ -705,14 +709,14 @@ function PaidSlider({on,onChange}){
   );
 }
 
-const lbl={display:"block",fontSize:12,color:"var(--muted)",fontWeight:700,margin:"10px 0 4px",textTransform:"uppercase",letterSpacing:.5};
-const lblSm={display:"block",fontSize:10,color:"var(--muted)",fontWeight:700,marginBottom:2,textTransform:"uppercase"};
-const inp={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:8,padding:12,fontSize:16,background:"var(--field)",color:"var(--ink)"};
-const inpSm={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:8,padding:8,fontSize:15,background:"var(--field)",color:"var(--ink)"};
-const btn={width:"100%",background:"var(--ink)",color:"var(--paper)",border:"none",borderRadius:10,padding:14,fontWeight:700,cursor:"pointer",marginTop:10};
-const stepBtn={border:"none",background:"transparent",fontSize:20,width:30,height:30,cursor:"pointer",color:"var(--slate)",borderRadius:6};
-const card={background:"var(--card)",border:"1px solid var(--line)",borderRadius:12,padding:14,marginTop:10};
-const compareBox={flex:1,textAlign:"center",background:"var(--field)",border:"1px solid var(--line)",borderRadius:10,padding:"8px 6px",color:"var(--ink)"};
-const flagBox={background:"#f7ede4",border:"1px solid #a8613c",color:"#8a4a24",borderRadius:8,padding:"8px 10px",fontSize:13,fontWeight:600,margin:"4px 0"};
-const tabBtn={flex:1,padding:"10px",borderRadius:10,border:"1px solid var(--line)",background:"var(--card)",fontWeight:700,fontSize:14,cursor:"pointer",color:"var(--muted)"};
-const tabActive={background:"var(--slate)",color:"#fff",borderColor:"var(--slate)"};
+const lbl={display:"block",fontSize:11,color:"var(--muted)",fontWeight:600,margin:"12px 0 5px",textTransform:"uppercase",letterSpacing:.7};
+const lblSm={display:"block",fontSize:10,color:"var(--muted)",fontWeight:600,marginBottom:3,textTransform:"uppercase",letterSpacing:.5};
+const inp={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:10,padding:"12px 13px",fontSize:16,background:"var(--field)",color:"var(--ink)",transition:"border-color .15s"};
+const inpSm={width:"100%",boxSizing:"border-box",border:"1px solid var(--line)",borderRadius:9,padding:"9px 11px",fontSize:15,background:"var(--field)",color:"var(--ink)"};
+const btn={width:"100%",background:"var(--ink)",color:"var(--paper)",border:"none",borderRadius:11,padding:"13px 16px",fontWeight:600,cursor:"pointer",marginTop:10,fontSize:14,letterSpacing:.2};
+const stepBtn={border:"none",background:"transparent",fontSize:20,width:32,height:32,cursor:"pointer",color:"var(--slate)",borderRadius:8};
+const card={background:"var(--card)",border:"1px solid var(--line)",borderRadius:14,padding:16,marginTop:12,boxShadow:"var(--shadow)"};
+const compareBox={flex:1,textAlign:"center",background:"var(--field)",border:"1px solid var(--line)",borderRadius:10,padding:"9px 8px",color:"var(--ink)"};
+const flagBox={background:"rgba(176,106,60,0.12)",border:"1px solid var(--accent)",color:"var(--accent)",borderRadius:9,padding:"9px 11px",fontSize:13,fontWeight:600,margin:"4px 0"};
+const tabBtn={flex:1,padding:"11px",borderRadius:11,border:"1px solid var(--line)",background:"var(--card)",fontWeight:600,fontSize:14,cursor:"pointer",color:"var(--muted)",transition:"all .15s"};
+const tabActive={background:"var(--slate)",color:"#fff",borderColor:"var(--slate)",boxShadow:"var(--shadow)"};

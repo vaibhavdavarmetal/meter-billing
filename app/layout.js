@@ -9,7 +9,7 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
-      <body style={{ margin: 0, background: "#faf7f0", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#1f2421" }}>
+      <body style={{ margin: 0, background: "#f6f2ea", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#232826" }}>
         {children}
       </body>
     </html>

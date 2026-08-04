@@ -190,14 +190,14 @@ export default function Page() {
 
 // ── inline styles ─────────────────────────────────────────────
 const Card = ({ children }) => (
-  <div style={{ maxWidth: 440, margin: "0 auto", padding: "28px 20px", minHeight: "100vh" }}>
-    <div style={{ background: "#fff", border: "1px solid #e4ddd0", borderRadius: 18, padding: 22, textAlign: "center" }}>{children}</div>
+  <div style={{ maxWidth: 440, margin: "0 auto", padding: "32px 20px", minHeight: "100vh", background: "#f6f2ea" }}>
+    <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 20, padding: 26, textAlign: "center", boxShadow: "0 4px 16px rgba(60,50,30,0.06), 0 1px 3px rgba(60,50,30,0.04)" }}>{children}</div>
   </div>
 );
-const eyebrow = { fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#a8613c", fontWeight: 700 };
-const h1 = { fontFamily: "Georgia, serif", fontSize: 26, margin: "4px 0 8px" };
-const monthBadge = { display: "inline-block", background: "#eef3f5", color: "#3b5b6b", fontSize: 13, fontWeight: 700, borderRadius: 20, padding: "6px 14px", margin: "0 auto 18px" };
-const bigBtn = { display: "block", textAlign: "center", background: "#3b5b6b", color: "#fff", padding: "16px", borderRadius: 12, fontWeight: 700, cursor: "pointer", fontSize: 16 };
-const fieldLabel = { display: "block", fontSize: 12, color: "#8a8375", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "14px 0 6px" };
-const input = { width: "100%", boxSizing: "border-box", border: "1px solid #e4ddd0", borderRadius: 10, padding: "14px", fontSize: 20, fontWeight: 700, background: "#faf7f0", textAlign: "center" };
-const submitBtn = { width: "100%", marginTop: 16, background: "#3f6b4a", color: "#fff", border: "none", borderRadius: 12, padding: "16px", fontSize: 16, fontWeight: 700, cursor: "pointer" };
+const eyebrow = { fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#b06a3c", fontWeight: 600 };
+const h1 = { fontFamily: "Georgia, serif", fontSize: 27, margin: "6px 0 8px", color: "#232826", fontWeight: 600 };
+const monthBadge = { display: "inline-block", background: "#eef3f5", color: "#3b6478", fontSize: 13, fontWeight: 600, borderRadius: 20, padding: "6px 15px", margin: "2px auto 20px" };
+const bigBtn = { display: "block", textAlign: "center", background: "#3b6478", color: "#fff", padding: "16px", borderRadius: 13, fontWeight: 600, cursor: "pointer", fontSize: 16, boxShadow: "0 2px 6px rgba(59,100,120,0.25)" };
+const fieldLabel = { display: "block", fontSize: 11, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, margin: "16px 0 6px" };
+const input = { width: "100%", boxSizing: "border-box", border: "1.5px solid #e7e0d4", borderRadius: 12, padding: "15px", fontSize: 22, fontWeight: 700, background: "#f6f2ea", textAlign: "center", color: "#232826" };
+const submitBtn = { width: "100%", marginTop: 18, background: "#3f7a52", color: "#fff", border: "none", borderRadius: 13, padding: "16px", fontSize: 16, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 6px rgba(63,122,82,0.25)" };
