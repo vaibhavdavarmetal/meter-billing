@@ -35,6 +35,7 @@ function TenantForm() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (d && d.name) { setTenantName(d.name); setPropertyName(d.propertyName || ""); }
+          if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
         .catch(() => {});
@@ -91,6 +92,17 @@ function TenantForm() {
         <p style={{ color: "#8a8375" }}>
           Open your personal link to submit your reading. It looks like
           <br /><code>?t=your-name</code> at the end of the address.
+        </p>
+      </Card>
+    );
+  }
+
+  if (stage === "inactive") {
+    return (
+      <Card>
+        <h1 style={h1}>Link no longer active</h1>
+        <p style={{ color: "#8a8375" }}>
+          This meter reading link is no longer active. If you think this is a mistake, please contact the owner.
         </p>
       </Card>
     );

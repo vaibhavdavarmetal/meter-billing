@@ -81,6 +81,7 @@ export async function POST(req) {
     const period = body.period || currentPeriod();
     const found = findTenantIn(props, slug);
     if (!found) return Response.json({ error: "Unknown tenant" }, { status: 404 });
+    if (found.tenant.active === false) return Response.json({ error: "inactive" }, { status: 403 });
 
     // Lock: if already submitted for this month and not unlocked, reject.
     const existing = await getReading(period, slug);

@@ -20,12 +20,14 @@ export async function GET(req) {
   if (!found) return Response.json({ error: "Unknown tenant" }, { status: 404 });
 
   const period = currentPeriod();
-  const existing = await getReading(period, slug);
+  const active = found.tenant.active !== false; // default active unless explicitly false
+  const existing = active ? await getReading(period, slug) : null;
   const submitted = !!(existing && !existing.unlockedForResubmit);
 
   return Response.json({
     name: found.tenant.name,
     propertyName: found.property.name,
+    active,
     submitted,
     reading: submitted ? existing.reading : null,
     submittedAt: submitted ? existing.submittedAt : null,

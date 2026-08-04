@@ -83,6 +83,9 @@ export default function Admin(){
 
   const [theme,setTheme]=useState("dark"); // dark by default
   const [photoView,setPhotoView]=useState(null); // url of photo to preview full-screen
+  const [prevUnlocked,setPrevUnlocked]=useState({}); // slug -> true to allow editing previous reading
+  const [expandedTenant,setExpandedTenant]=useState({}); // slug -> true when accordion open
+  const [agrBusy,setAgrBusy]=useState({}); // slug -> true while uploading agreement
 
   useEffect(()=>{
     try{ const t=window.localStorage.getItem("admin-theme"); if(t) setTheme(t); }catch{}
@@ -133,6 +136,20 @@ export default function Admin(){
     catch{ setRegMsg("Could not load tenant list."); }
   };
   const openManage=async()=>{ setView("manage"); if(!reg) await loadRegistry(); };
+
+  const uploadAgreement=async(slug,file)=>{
+    if(!file) return;
+    setAgrBusy(b=>({...b,[slug]:true}));
+    try{
+      const dataUrl=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+      const base64=String(dataUrl).split(",")[1];
+      const resp=await fetch("/api/agreement",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,slug,fileBase64:base64,mediaType:file.type,filename:file.name})});
+      const d=await resp.json();
+      if(!resp.ok){ alert(d.error||"Upload failed"); }
+      else { await loadRegistry(); }
+    }catch{ alert("Upload failed."); }
+    setAgrBusy(b=>({...b,[slug]:false}));
+  };
 
   const loadStaff=async(p=period)=>{
     setStaffMsg("");
@@ -320,7 +337,7 @@ export default function Admin(){
     const save=async()=>{
       setRegMsg("");
       const fixed=structuredClone(reg);
-      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; t.biMonthly=!!t.biMonthly; if(t.biMonthly&&!t.biMonthlyStart) t.biMonthlyStart="2026-08"; t.phone=(t.phone||"").replace(/[^0-9]/g,""); }); });
+      Object.values(fixed).forEach(p=>{ p.rate=Number(p.rate)||0; p.tenants.forEach(t=>{ if(!t.slug) t.slug=slugify(t.name); t.rent=Number(t.rent)||0; t.misc=Number(t.misc)||0; t.startReading=Number(t.startReading)||0; t.biMonthly=!!t.biMonthly; if(t.biMonthly&&!t.biMonthlyStart) t.biMonthlyStart="2026-08"; t.phone=(t.phone||"").replace(/[^0-9]/g,""); if(t.active===undefined) t.active=true; }); });
       try{
         const res=await fetch("/api/registry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,properties:fixed})});
         const d=await res.json();
@@ -341,7 +358,15 @@ export default function Admin(){
               </div>
             </div>
             {prop.tenants.map((t,i)=>(
-              <div key={i} style={{...card,padding:12}}>
+              <div key={i} style={{...card,padding:0,overflow:"hidden"}}>
+                <button type="button" onClick={()=>setExpandedTenant(x=>({...x,[t.slug]:!x[t.slug]}))} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"14px 14px",background:"transparent",border:"none",cursor:"pointer",color:"var(--ink)"}}>
+                  <span style={{fontWeight:700,fontSize:15,flex:1,textAlign:"left",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}{t.active===false?" (inactive)":""}</span>
+                  {t.agreementUrl&&<span title="Agreement on file" style={{fontSize:13}}>📄</span>}
+                  <span style={{fontSize:12,color:"var(--muted)"}}>{t.rent?`₹${Number(t.rent).toLocaleString("en-IN")}`:""}</span>
+                  <span style={{fontSize:14,color:"var(--slate)",transform:expandedTenant[t.slug]?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
+                </button>
+                {expandedTenant[t.slug]&&(
+                <div style={{padding:"0 12px 12px"}}>
                 <div style={{display:"flex",gap:8,marginBottom:6}}>
                   <div style={{flex:1}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
                   <div style={{width:84}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
@@ -369,9 +394,37 @@ export default function Admin(){
                   </div>
                 )}
                 {!prop.isTest&&(
-                  <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{display:"block",textAlign:"center",background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700,marginTop:10}}>
-                    Send link + instructions on WhatsApp{t.phone?"":" (pick contact)"}
-                  </a>
+                  <div style={{display:"flex",gap:8,marginTop:12}}>
+                    <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{flex:1,textAlign:"center",background:"transparent",color:"#3f6b4a",border:"1px solid #3f6b4a",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700}}>
+                      Send link{t.phone?"":" (pick contact)"}
+                    </a>
+                    <button type="button" onClick={()=>setTen(pk,i,"active",t.active===false?true:false)} style={{background:t.active===false?"#a8613c":"var(--field)",color:t.active===false?"#fff":"var(--muted)",border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                      {t.active===false?"Inactive — reactivate":"Deactivate link"}
+                    </button>
+                  </div>
+                )}
+                {t.active===false&&<p style={{fontSize:12,color:"#a8613c",marginTop:6,fontWeight:600}}>This tenant's link is blocked. Remember to Save changes.</p>}
+                {!prop.isTest&&(
+                  <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid var(--line)"}}>
+                    <label style={lblSm}>Rental agreement</label>
+                    {t.agreementUrl?(
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                        <a href={t.agreementUrl} target="_blank" rel="noreferrer" style={{flex:1,color:"var(--slate)",fontSize:13,textDecoration:"none",fontWeight:600}}>📄 View / download {t.agreementName||"agreement"}</a>
+                        <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"8px 12px",marginTop:0,cursor:"pointer",fontSize:12}}>
+                          {agrBusy[t.slug]?"Uploading…":"Replace"}
+                          <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
+                        </label>
+                      </div>
+                    ):(
+                      <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,cursor:"pointer",display:"block",textAlign:"center"}}>
+                        {agrBusy[t.slug]?"Uploading…":"⬆ Upload agreement (PDF or photo)"}
+                        <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
+                      </label>
+                    )}
+                    <p style={{fontSize:11,color:"var(--muted)",marginTop:4}}>Max ~4MB. Stored securely; one per tenant.</p>
+                  </div>
+                )}
+                </div>
                 )}
               </div>
             ))}
@@ -453,6 +506,7 @@ export default function Admin(){
                     :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
                 </div>
                 {isApproved&&<div style={{fontSize:12,color:"#3f6b4a",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
+                {t.active===false&&<div style={{fontSize:12,color:"#a8613c",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
 
                 {biStatus==="skip"&&(
                   <div style={{background:"#eef3f5",border:"1px solid #cfe0d4",color:"#3b5b6b",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
@@ -483,7 +537,17 @@ export default function Admin(){
 
                 {/* Readings row — always visible */}
                 <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
-                  <div style={{flex:1}}><label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label><input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#faf7f0"}} placeholder="0"/></div>
+                  <div style={{flex:1}}>
+                    <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
+                    <div style={{position:"relative"}}>
+                      <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"#eef3f5":"#fff",color:"var(--ink)"}} placeholder="0"/>
+                      {!isApproved&&(
+                        <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
+                          {prevUnlocked[t.slug]?"🔓":"✏️"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#fff"}}/></div>
                   <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"#3b5b6b"}}>{units??"—"}</div><div style={{fontSize:10,color:"#8a8375"}}>units</div></div>
                 </div>
