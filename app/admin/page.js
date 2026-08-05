@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 function money(n){ if(n==null||!isFinite(n)) return "—"; return "₹"+Math.round(n).toLocaleString("en-IN"); }
 function thisPeriod(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
@@ -37,6 +37,7 @@ export default function Admin(){
   const [saving,setSaving]=useState(false);
   const [savedMsg,setSavedMsg]=useState("");
   const [confirmSlug,setConfirmSlug]=useState(null); // tenant pending approve confirmation
+  const [confirmUnpaid,setConfirmUnpaid]=useState(null); // {slug,pkey} pending unpaid confirmation
   const [paidAmt,setPaidAmt]=useState({}); // slug -> amount actually paid (string)
   const [reportBusy,setReportBusy]=useState(false);
 
@@ -242,7 +243,7 @@ export default function Admin(){
               {pa!=null&&<div style={{fontSize:12,marginTop:4,color:out>0?"#a8613c":out<0?"#3f6b4a":"#8a8375"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Paid extra ${money(-out)} — advance next month`:"Settled exactly"}</div>}
               <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12}}>
                 <button onClick={()=>saveStaffEntry(s)} style={{...btn,background:"#3b5b6b",marginTop:0}}>Save {label(period)}</button>
-                <div style={{marginLeft:"auto"}}><PaidSlider on={e.paid} onChange={(v)=>{ setStaffField(s.id,"paid",v); }}/></div>
+                <div style={{marginLeft:"auto"}}><button type="button" onClick={()=>setStaffField(s.id,"paid",!e.paid)} style={{border:"1px solid var(--line)",background:e.paid?"var(--good)":"var(--field)",color:e.paid?"#fff":"var(--muted)",borderRadius:20,padding:"7px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{e.paid?"✓ Paid":"Mark paid"}</button></div>
               </div>
             </div>
           );
@@ -280,8 +281,11 @@ export default function Admin(){
     }catch{}
   };
 
-  const waText=(propName,tName,parts,total)=>{
+  const waText=(propName,tName,parts,total,meter)=>{
     let s=`Bill — ${label(period)}\n${propName} · ${tName}\n\n`;
+    if(meter&&meter.current!=null){
+      s+=`Meter previous: ${meter.previous}\nMeter current: ${meter.current}\nUnits used: ${meter.units}\n\n`;
+    }
     parts.forEach(p=>{ s+=`${p.label}: ${money(p.amount)}\n`; });
     s+=`\nTotal payable: ${money(total)}`; return s;
   };
@@ -483,17 +487,10 @@ export default function Admin(){
                       Paid {money(saved.paidAmount)} · {(saved.outstanding||0)>0?`Short ${money(saved.outstanding)} (carries to next month)`:(saved.outstanding||0)<0?`Overpaid ${money(-saved.outstanding)} (credit next month)`:"Settled exactly"}
                     </div>
                   )}
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10}}>
-                    <span style={{fontSize:12,color:"#3f6b4a"}}>✓ Paid · billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
-                    <div style={{marginLeft:"auto"}}><PaidSlider on={true} onChange={async()=>{
-                      setExtra(t.slug,"paid",false);
-                      const bill=await saveOneBill(pkey,prop,t,false);
-                      setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
-                      persistExtra(t.slug);
-                    }}/></div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}>
+                    <span style={{fontSize:12,color:"var(--good)",fontWeight:600}}>✓ Paid · billed {saved.savedAt?new Date(saved.savedAt).toLocaleDateString("en-IN"):""}</span>
+                    <button onClick={()=>setConfirmUnpaid({slug:t.slug,pkey})} style={{marginLeft:"auto",background:"var(--field)",color:"var(--accent)",border:"1px solid var(--line)",borderRadius:9,padding:"9px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>🔓 Unlock — mark unpaid</button>
                   </div>
-                  <div style={{fontSize:11,color:"var(--muted)",marginTop:6,textAlign:"right"}}>Toggle off to mark unpaid & edit</div>
-                  {photoUrl&&<div style={{marginTop:8}}><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:240,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
                 </div>
               );
             }
@@ -575,21 +572,20 @@ export default function Admin(){
                     <div style={{fontSize:13,color:"#8a8375",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"#1f2421"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"#fff",color:"#3b5b6b",border:"1px solid #e4ddd0",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
-                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"#3f6b4a",marginTop:0}}>Send bill on WhatsApp</a>
+                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"#3f6b4a",marginTop:0}}>Send bill on WhatsApp</a>
                     </div>
                     <div style={{marginTop:12}}>
                       <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
                       <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
                       {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"#a8613c":out<0?"#3f6b4a":"#8a8375"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
-                      <span style={{fontSize:13,color:"var(--muted)"}}>Mark paid saves to history</span>
-                      <div style={{marginLeft:"auto"}}><PaidSlider on={ex.paid} onChange={async(v)=>{
-                        setExtra(t.slug,"paid",v);
-                        const bill=await saveOneBill(pkey,prop,t,v);
+                    <div style={{marginTop:14}}>
+                      <SlideToPay onConfirm={async()=>{
+                        setExtra(t.slug,"paid",true);
+                        const bill=await saveOneBill(pkey,prop,t,true);
                         setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
                         persistExtra(t.slug);
-                      }}/></div>
+                      }}/>
                     </div>
                   </div>
                 )}
@@ -686,6 +682,29 @@ export default function Admin(){
           </div>
         )}
 
+        {/* Mark-unpaid confirmation dialog */}
+        {confirmUnpaid&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmUnpaid(null)}>
+            <div style={{background:"var(--card)",color:"var(--ink)",borderRadius:16,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <h3 style={{margin:"0 0 8px",fontFamily:"Georgia, serif"}}>Mark this bill unpaid?</h3>
+              <p style={{fontSize:14,color:"var(--muted)",margin:"0 0 18px"}}>This will unlock the bill for editing again and show the meter photo. You can re-mark it paid afterwards.</p>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setConfirmUnpaid(null)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
+                <button onClick={async()=>{
+                  const {slug,pkey}=confirmUnpaid;
+                  const prop=data.properties[pkey];
+                  const t=prop.tenants.find(x=>x.slug===slug);
+                  setConfirmUnpaid(null);
+                  setExtra(slug,"paid",false);
+                  const bill=await saveOneBill(pkey,prop,t,false);
+                  setData(prev=>prev?{...prev,bills:{...prev.bills,[slug]:bill}}:prev);
+                  persistExtra(slug);
+                }} style={{...btn,background:"var(--accent)",marginTop:0}}>Mark unpaid</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Full-screen photo preview */}
         {photoView&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:16,zIndex:60}} onClick={()=>setPhotoView(null)}>
@@ -698,14 +717,63 @@ export default function Admin(){
   );
 }
 
-function PaidSlider({on,onChange}){
+// Slide all the way right to confirm. Calls onConfirm() when completed.
+function SlideToPay({onConfirm,label="Slide to mark paid"}){
+  const trackRef=useRef(null);
+  const [x,setX]=useState(0);        // handle offset in px
+  const [dragging,setDragging]=useState(false);
+  const [done,setDone]=useState(false);
+  const handleW=44;
+  const startX=useRef(0);
+  const maxX=useRef(0);
+
+  const begin=(clientX)=>{
+    if(done) return;
+    const track=trackRef.current; if(!track) return;
+    maxX.current = track.clientWidth - handleW - 6;
+    startX.current = clientX - x;
+    setDragging(true);
+  };
+  const move=(clientX)=>{
+    if(!dragging||done) return;
+    let nx = clientX - startX.current;
+    nx = Math.max(0, Math.min(nx, maxX.current));
+    setX(nx);
+  };
+  const end=()=>{
+    if(!dragging||done) return;
+    setDragging(false);
+    if(x >= maxX.current - 4){
+      setX(maxX.current); setDone(true);
+      setTimeout(()=>onConfirm&&onConfirm(),150);
+    } else {
+      setX(0); // snap back if not completed
+    }
+  };
+
+  useEffect(()=>{
+    if(!dragging) return;
+    const mm=(e)=>move(e.touches?e.touches[0].clientX:e.clientX);
+    const mu=()=>end();
+    window.addEventListener("mousemove",mm); window.addEventListener("mouseup",mu);
+    window.addEventListener("touchmove",mm,{passive:false}); window.addEventListener("touchend",mu);
+    return ()=>{ window.removeEventListener("mousemove",mm); window.removeEventListener("mouseup",mu); window.removeEventListener("touchmove",mm); window.removeEventListener("touchend",mu); };
+  });
+
+  const pct = maxX.current? x/maxX.current : 0;
   return (
-    <button onClick={()=>onChange(!on)} aria-label={on?"Mark unpaid":"Mark paid"} style={{display:"inline-flex",alignItems:"center",gap:8,border:"none",background:"transparent",cursor:"pointer"}}>
-      <span style={{fontSize:13,fontWeight:700,color:on?"#3f6b4a":"#8a8375"}}>{on?"Paid":"Unpaid"}</span>
-      <span style={{width:46,height:26,borderRadius:20,background:on?"#3f6b4a":"#d3d1c7",position:"relative",transition:"background .2s"}}>
-        <span style={{position:"absolute",top:3,left:on?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-      </span>
-    </button>
+    <div ref={trackRef} style={{position:"relative",width:"100%",height:52,borderRadius:26,background:"var(--field)",border:"1px solid var(--line)",overflow:"hidden",userSelect:"none",touchAction:"none"}}>
+      <div style={{position:"absolute",inset:0,borderRadius:26,background:`linear-gradient(90deg, var(--good) 0%, var(--good) ${Math.max(pct*100,8)}%, transparent ${Math.max(pct*100,8)}%)`,opacity:0.18}}/>
+      <div style={{position:"absolute",width:"100%",textAlign:"center",lineHeight:"52px",fontSize:14,fontWeight:600,color:done?"var(--good)":"var(--muted)",pointerEvents:"none"}}>
+        {done?"✓ Paid":label+" →"}
+      </div>
+      <div
+        onMouseDown={(e)=>begin(e.clientX)}
+        onTouchStart={(e)=>begin(e.touches[0].clientX)}
+        style={{position:"absolute",top:3,left:3,transform:`translateX(${x}px)`,width:handleW,height:44,borderRadius:22,background:done?"var(--good)":"var(--slate)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:done?"default":"grab",transition:dragging?"none":"transform .2s",boxShadow:"0 1px 4px rgba(0,0,0,0.25)",fontSize:18}}>
+        {done?"✓":"›"}
+      </div>
+    </div>
   );
 }
 
