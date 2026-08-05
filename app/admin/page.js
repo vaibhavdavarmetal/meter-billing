@@ -51,7 +51,7 @@ export default function Admin(){
       : saved&&saved.currentReading!=null?saved.currentReading
       : (r?r.reading:null);
     const pv=Number(prev[t.slug]||0);
-    const u= eff==null?0:Math.max(0,eff-pv);
+    const u= eff==null?0:Math.round(Math.max(0,eff-pv)*10)/10;
     const ex=extras[t.slug]||{};
     const rent=Number(ex.rent)||0, misc=Number(ex.misc)||0;
     const elec= eff==null?0: u*(Number(prop.rate)||0);
@@ -462,7 +462,8 @@ export default function Admin(){
             const ov=override[t.slug];
             const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
             const prevV=Number(prev[t.slug]||0);
-            const units=effective==null?null:Math.max(0,effective-prevV);
+            const unitsRaw=effective==null?null:Math.max(0,effective-prevV);
+            const units=unitsRaw==null?null:Math.round(unitsRaw*10)/10;
             const mismatch=ai!=null&&submitted!=null&&Number(ai)!==Number(submitted);
             const photoUrl=r?.photoUrl||saved?.photoUrl;
             const hasReading=!!r;
