@@ -46,16 +46,43 @@ function TenantForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     setErr("");
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      const base64 = String(dataUrl).split(",")[1];
+    try {
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = () => rej(new Error("read failed"));
+        r.readAsDataURL(file);
+      });
+
+      // Draw onto a canvas, scale down, and re-encode as compressed JPEG so uploads stay small.
+      const compressed = await new Promise((res) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1400; // plenty of detail to read a meter, keeps size small
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          // 0.7 quality JPEG — clear for reading, typically well under 1MB
+          res(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.onerror = () => res(dataUrl); // fall back to original if anything fails
+        img.src = dataUrl;
+      });
+
+      const base64 = String(compressed).split(",")[1];
       setPhoto(base64);
-      setMediaType(file.type || "image/jpeg");
-      setPreview(dataUrl);
-      setStage("confirm"); // go straight to manual entry, no AI
-    };
-    reader.readAsDataURL(file);
+      setMediaType("image/jpeg");
+      setPreview(compressed);
+      setStage("confirm");
+    } catch {
+      setErr("Couldn't read that photo. Please try again.");
+    }
   };
 
   const requestSubmit = () => {
@@ -78,10 +105,12 @@ function TenantForm() {
         setStage("locked");
         return;
       }
+      if (res.status === 403) { setStage("inactive"); return; }
+      if (res.status === 413) { setErr("The photo is too large. Please retake it a bit further back, or try again."); return; }
       if (!res.ok) throw new Error();
       setStage("done");
     } catch {
-      setErr("Could not submit. Please try again.");
+      setErr("Could not submit — please check your connection and try again.");
     }
   };
 
