@@ -8,6 +8,36 @@ function billingMonthLabel() {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function UsageChart({ data }) {
+  if (!data || data.length === 0) return null;
+  const w = 300, h = 156, padL = 30, padB = 38, padT = 10, padR = 10;
+  const units = data.map((d) => d.units);
+  const max = Math.max(...units, 1);
+  const iw = w - padL - padR, ih = h - padT - padB;
+  const n = data.length;
+  const slot = iw / n;
+  const barW = Math.min(slot * 0.6, 34);
+  const y = (u) => padT + ih - (u / max) * ih;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Your electricity units used per month">
+      <line x1={padL} y1={padT + ih} x2={w - padR} y2={padT + ih} stroke="#e7e0d4" strokeWidth="1" />
+      <text x={padL - 6} y={y(max)} fontSize="9" fill="#8a857a" textAnchor="end" dominantBaseline="middle">{Math.round(max)}</text>
+      <text x={padL - 6} y={padT + ih} fontSize="9" fill="#8a857a" textAnchor="end" dominantBaseline="middle">0</text>
+      {data.map((d, i) => {
+        const cx = padL + slot * i + slot / 2;
+        const bh = (d.units / max) * ih;
+        return (
+          <g key={i}>
+            <rect x={cx - barW / 2} y={padT + ih - bh} width={barW} height={bh} rx="3" fill="#3b6478" />
+            <text x={cx} y={padT + ih - bh - 4} fontSize="8" fill="#5a6b74" textAnchor="middle">{Math.round(d.units)}</text>
+            <text x={cx} y={h - 4} fontSize="7" fill="#8a857a" textAnchor="end" transform={`rotate(-35 ${cx} ${h - 4})`}>{d.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function TenantForm() {
   const [slug, setSlug] = useState(null);
   const [tenantName, setTenantName] = useState("");
@@ -23,6 +53,8 @@ function TenantForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lockedInfo, setLockedInfo] = useState(null); // {reading, submittedAt}
+  const [history, setHistory] = useState([]);      // [{label, units}]
+  const [lastUnits, setLastUnits] = useState(null); // most recent recorded units
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("t");
@@ -34,6 +66,8 @@ function TenantForm() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (d && d.name) { setTenantName(d.name); setPropertyName(d.propertyName || ""); }
+          if (d && d.history) setHistory(d.history);
+          if (d && d.lastUnits != null) setLastUnits(d.lastUnits);
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
@@ -149,7 +183,13 @@ function TenantForm() {
         <p style={{ color: "#8a8375" }}>
           Your meter reading for {billingMonthLabel()} {lockedInfo && lockedInfo.reading != null ? <>(<strong>{lockedInfo.reading}</strong>) </> : ""}has already been submitted.
         </p>
-        <p style={{ color: "#8a8375", fontSize: 14 }}>You can't submit again for this month. If it needs to be changed, please contact the owner to unlock it.</p>
+        <p style={{ color: "#8a857a", fontSize: 14 }}>You can't submit again for this month. If it needs to be changed, please contact the owner to unlock it.</p>
+        {history.length > 0 && (
+          <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #e7e0d4" }}>
+            <div style={{ fontSize: 12, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Your electricity units used</div>
+            <UsageChart data={history} />
+          </div>
+        )}
       </Card>
     );
   }
@@ -159,7 +199,14 @@ function TenantForm() {
       <Card>
         <div style={{ fontSize: 40, marginBottom: 8 }}>✓</div>
         <h1 style={h1}>Thank you, {tenantName}</h1>
-        <p style={{ color: "#8a8375" }}>Your reading of <strong>{reading}</strong> was submitted. You can close this page.</p>
+        <p style={{ color: "#8a857a" }}>Your reading of <strong>{reading}</strong> was submitted. You can close this page.</p>
+        {history.length > 0 && (
+          <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #e7e0d4" }}>
+            <div style={{ fontSize: 12, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Your electricity units used</div>
+            <UsageChart data={history} />
+            <p style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>Units used each billing cycle (this cycle appears once your bill is finalised).</p>
+          </div>
+        )}
       </Card>
     );
   }
@@ -170,6 +217,11 @@ function TenantForm() {
       <h1 style={h1}>{tenantName}</h1>
       {propertyName && <div style={{ fontSize: 13, color: "#8a8375", marginTop: -8, marginBottom: 4 }}>{propertyName}</div>}
       <div style={monthBadge}>Reading for {billingMonthLabel()}</div>
+      {lastUnits != null && (
+        <div style={{ fontSize: 13, color: "#8a857a", marginTop: -8, marginBottom: 14 }}>
+          Last recorded: <strong style={{ color: "#3b6478" }}>{lastUnits} units</strong>
+        </div>
+      )}
 
       <label style={bigBtn}>
         📷 {photo ? "Retake photo" : "Take a photo of your meter"}
