@@ -23,6 +23,7 @@ function TenantForm() {
   const [stage, setStage] = useState("start");    // start | reading | confirm | done | locked
   const [err, setErr] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [lockedInfo, setLockedInfo] = useState(null); // {reading, submittedAt}
 
   useEffect(() => {
@@ -86,6 +87,7 @@ function TenantForm() {
   };
 
   const requestSubmit = () => {
+    if (submitting) return;
     if (!reading) { setErr("Please enter the meter number."); return; }
     setErr("");
     setShowConfirm(true);
@@ -93,6 +95,7 @@ function TenantForm() {
 
   const doSubmit = async () => {
     setShowConfirm(false);
+    setSubmitting(true);
     try {
       const res = await fetch("/api/readings", {
         method: "POST",
@@ -111,6 +114,8 @@ function TenantForm() {
       setStage("done");
     } catch {
       setErr("Could not submit — please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -191,7 +196,10 @@ function TenantForm() {
             placeholder="e.g. 4521"
           />
           {err && <p style={{ color: "#c0392b", fontSize: 14 }}>{err}</p>}
-          <button onClick={requestSubmit} style={submitBtn}>Submit reading</button>
+          <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
+          </button>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       )}
 
