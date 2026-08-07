@@ -5,8 +5,6 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 // Tenants pay for the PREVIOUS month's usage, so show last month.
 function billingMonthLabel() {
   const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - 1);
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
