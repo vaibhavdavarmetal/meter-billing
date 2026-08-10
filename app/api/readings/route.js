@@ -84,6 +84,10 @@ export async function POST(req) {
       const existing = await getReading(period, body.slug);
       if (existing) {
         await saveReading(period, body.slug, { ...existing, unlockedForResubmit: true, unlockedAt: new Date().toISOString() });
+      } else {
+        // No reading record (bill was entered manually) — write an unlock marker so the
+        // bill-based lock releases and the tenant can submit fresh.
+        await saveReading(period, body.slug, { slug: body.slug, unlockedForResubmit: true, unlockedAt: new Date().toISOString(), reading: null });
       }
       return Response.json({ ok: true });
     }

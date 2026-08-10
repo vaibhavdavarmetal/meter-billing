@@ -24,7 +24,13 @@ export async function GET(req) {
   const period = currentPeriod();
   const active = found.tenant.active !== false; // default active unless explicitly false
   const existing = active ? await getReading(period, slug) : null;
-  const submitted = !!(existing && !existing.unlockedForResubmit);
+  // A finalized bill for this month means they've been billed → lock, even if the reading
+  // was entered manually (e.g. tenant sent a WhatsApp screenshot, no app submission).
+  const billThisMonth = active ? await getBill(period, slug) : null;
+  const submitted = active && (
+    (!!existing && !existing.unlockedForResubmit) ||
+    (!!billThisMonth && billThisMonth.currentReading != null && !(existing && existing.unlockedForResubmit))
+  );
 
   // Gather this tenant's saved bills for the last 13 months → units per cycle.
   // Fetch all months in PARALLEL (not one-by-one) and reuse the results.
@@ -76,8 +82,8 @@ export async function GET(req) {
     propertyName: found.property.name,
     active,
     submitted,
-    reading: submitted ? existing.reading : null,
-    submittedAt: submitted ? existing.submittedAt : null,
+    reading: submitted ? (existing ? existing.reading : (billThisMonth ? billThisMonth.currentReading : null)) : null,
+    submittedAt: submitted ? (existing ? existing.submittedAt : (billThisMonth ? billThisMonth.savedAt : null)) : null,
     history,
     lastUnits,
     previousReading,   // last meter reading, shown upfront
