@@ -338,6 +338,9 @@ export default function Admin(){
     const setTen=(pk,i,f,v)=>{ const n=structuredClone(reg); n[pk].tenants[i][f]=v; setReg(n); };
     const addTen=(pk)=>{ const n=structuredClone(reg); n[pk].tenants.push({slug:pk+"-"+(n[pk].tenants.length+1),name:"New Tenant",rent:0,misc:0}); setReg(n); };
     const removeTen=(pk,i)=>{ const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); };
+    const setContact=(pk,ci,f,v)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts[ci][f]=v; setReg(n); };
+    const addContact=(pk)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts.push({label:"",name:"",phone:""}); setReg(n); };
+    const removeContact=(pk,ci)=>{ const n=structuredClone(reg); n[pk].contacts.splice(ci,1); setReg(n); };
     const save=async()=>{
       setRegMsg("");
       const fixed=structuredClone(reg);
@@ -433,6 +436,21 @@ export default function Admin(){
               </div>
             ))}
             {!prop.isTest&&<button onClick={()=>addTen(pk)} style={{...btn,background:"#eef3f5",color:"#3b5b6b",marginTop:8}}>+ Add tenant to {prop.name}</button>}
+
+            {!prop.isTest&&(
+              <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--line)"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Maintenance contacts · {prop.name}</div>
+                {(prop.contacts||[]).map((c,ci)=>(
+                  <div key={ci} style={{display:"flex",gap:6,marginBottom:6}}>
+                    <input value={c.label||""} onChange={e=>setContact(pk,ci,"label",e.target.value)} style={{...inpSm,width:90}} placeholder="Role"/>
+                    <input value={c.name||""} onChange={e=>setContact(pk,ci,"name",e.target.value)} style={{...inpSm,flex:1}} placeholder="Name"/>
+                    <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(pk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,width:110}} placeholder="Phone"/>
+                    <button onClick={()=>removeContact(pk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#c0392b",borderRadius:8,padding:"0 10px",cursor:"pointer"}}>✕</button>
+                  </div>
+                ))}
+                <button onClick={()=>addContact(pk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"8px"}}>+ Add contact (plumber, electrician, cleaner…)</button>
+              </div>
+            )}
           </div>
         ))}
         <button onClick={save} style={{...btn,background:"#1f2421",marginTop:20}}>Save changes</button>

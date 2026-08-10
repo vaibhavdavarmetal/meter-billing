@@ -55,6 +55,10 @@ function TenantForm() {
   const [lockedInfo, setLockedInfo] = useState(null); // {reading, submittedAt}
   const [history, setHistory] = useState([]);      // [{label, units}]
   const [lastUnits, setLastUnits] = useState(null); // most recent recorded units
+  const [previousReading, setPreviousReading] = useState(null);
+  const [dues, setDues] = useState(null);
+  const [contacts, setContacts] = useState([]);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("t");
@@ -68,6 +72,9 @@ function TenantForm() {
           if (d && d.name) { setTenantName(d.name); setPropertyName(d.propertyName || ""); }
           if (d && d.history) setHistory(d.history);
           if (d && d.lastUnits != null) setLastUnits(d.lastUnits);
+          if (d && d.previousReading != null) setPreviousReading(d.previousReading);
+          if (d && d.dues) setDues(d.dues);
+          if (d && d.contacts) setContacts(d.contacts);
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
@@ -174,84 +181,131 @@ function TenantForm() {
     );
   }
 
-  if (stage === "locked") {
+  // ── Dashboard sub-cards ──
+  const DuesCard = () => {
+    if (!dues) {
+      return (
+        <DashCard>
+          <div style={cardLabel}>Account</div>
+          <div style={{ fontSize: 15, color: "#8a857a", marginTop: 4 }}>No dues right now. Your bill for {billingMonthLabel()} will appear here once it's finalised.</div>
+        </DashCard>
+      );
+    }
+    const s = dues.status;
+    const pill = s === "paid" ? { bg: "#e6f0ea", fg: "#3f7a52", t: "Paid" }
+      : s === "overpaid" ? { bg: "#eef3f5", fg: "#3b6478", t: "In credit" }
+      : { bg: "#f7ede4", fg: "#b06a3c", t: "Pending" };
+    const headline = s === "overpaid" ? `₹${Math.abs(dues.outstanding).toLocaleString("en-IN")} credit`
+      : s === "paid" ? "All settled"
+      : `₹${(dues.outstanding).toLocaleString("en-IN")}`;
     return (
-      <Card>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>✓</div>
-        <h1 style={h1}>Already submitted</h1>
-        {propertyName && <div style={{ fontSize: 13, color: "#8a8375", marginTop: -8, marginBottom: 8 }}>{propertyName} · {tenantName}</div>}
-        <p style={{ color: "#8a8375" }}>
-          Your meter reading for {billingMonthLabel()} {lockedInfo && lockedInfo.reading != null ? <>(<strong>{lockedInfo.reading}</strong>) </> : ""}has already been submitted.
-        </p>
-        <p style={{ color: "#8a857a", fontSize: 14 }}>You can't submit again for this month. If it needs to be changed, please contact the owner to unlock it.</p>
-        {history.length > 0 && (
-          <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #e7e0d4" }}>
-            <div style={{ fontSize: 12, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Your electricity units used</div>
-            <UsageChart data={history} />
-          </div>
-        )}
-      </Card>
+      <DashCard>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={cardLabel}>{s === "pending" ? "Total due" : "Account"}</div>
+          <span style={{ background: pill.bg, color: pill.fg, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>{pill.t}</span>
+        </div>
+        <div style={{ fontFamily: "Georgia, serif", fontSize: 30, color: "#232826", marginTop: 6 }}>{headline}</div>
+        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
+        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>Bill for {billingMonthLabel()}</div>
+      </DashCard>
     );
-  }
+  };
 
-  if (stage === "done") {
+  const ContactsCard = () => {
+    if (!contacts || contacts.length === 0) return null;
     return (
-      <Card>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>✓</div>
-        <h1 style={h1}>Thank you, {tenantName}</h1>
-        <p style={{ color: "#8a857a" }}>Your reading of <strong>{reading}</strong> was submitted. You can close this page.</p>
-        {history.length > 0 && (
-          <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #e7e0d4" }}>
-            <div style={{ fontSize: 12, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Your electricity units used</div>
-            <UsageChart data={history} />
-            <p style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>Units used each billing cycle (this cycle appears once your bill is finalised).</p>
+      <DashCard>
+        <div style={cardLabel}>Maintenance & help</div>
+        <div style={{ marginTop: 8 }}>
+          {contacts.map((c, i) => (
+            <a key={i} href={`tel:${c.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: i ? "1px solid #f0ebe1" : "none", textDecoration: "none", color: "#232826" }}>
+              <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#eef3f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📞</span>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                <span style={{ display: "block", fontWeight: 600, fontSize: 15 }}>{c.name}</span>
+                <span style={{ display: "block", fontSize: 12, color: "#8a857a" }}>{c.label || "Contact"}</span>
+              </span>
+              <span style={{ color: "#3b6478", fontWeight: 600, fontSize: 14 }}>Call</span>
+            </a>
+          ))}
+        </div>
+      </DashCard>
+    );
+  };
+
+  const MeterCard = () => {
+    // Submitted / locked state
+    if (stage === "locked" || stage === "done") {
+      return (
+        <DashCard>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
+            <span style={{ background: "#e6f0ea", color: "#3f7a52", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>✓ Submitted</span>
+          </div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#232826", marginTop: 8 }}>
+            {stage === "done" ? reading : (lockedInfo && lockedInfo.reading != null ? lockedInfo.reading : "—")}
+          </div>
+          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2 }}>Your submitted reading. Contact the owner if it needs changing.</div>
+          {history.length > 0 && (
+            <div style={{ marginTop: 14, borderTop: "1px solid #f0ebe1", paddingTop: 12 }}>
+              <button onClick={() => setShowChart((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, color: "#3b6478", fontWeight: 600, fontSize: 14 }}>
+                View detailed units info
+                <span style={{ transform: showChart ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+              </button>
+              {showChart && (
+                <div style={{ marginTop: 12 }}>
+                  <UsageChart data={history} />
+                  <p style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>Units used each billing cycle (this cycle appears once your bill is finalised).</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DashCard>
+      );
+    }
+    // Unlocked / entry state
+    return (
+      <DashCard>
+        <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
+        {previousReading != null && (
+          <div style={{ fontSize: 14, color: "#232826", margin: "8px 0 14px" }}>
+            Previous reading: <strong style={{ color: "#3b6478" }}>{previousReading}</strong>
           </div>
         )}
-      </Card>
+
+        <label style={bigBtn}>
+          📷 {photo ? "Retake photo" : "Take a photo of your meter"}
+          <input type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
+        </label>
+
+        {preview && <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 12, margin: "14px 0", border: "1px solid #e4ddd0" }} />}
+
+        {stage === "confirm" && (
+          <div>
+            <p style={{ color: "#3b5b6b", fontWeight: 600 }}>Please type the number shown on your meter.</p>
+            <label style={fieldLabel}>Meter number</label>
+            <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 4521" />
+            {err && <p style={{ color: "#c0392b", fontSize: 14 }}>{err}</p>}
+            <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
+            </button>
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          </div>
+        )}
+      </DashCard>
     );
-  }
+  };
 
   return (
-    <Card>
-      <div style={eyebrow}>Monthly electricity reading</div>
-      <h1 style={h1}>{tenantName}</h1>
-      {propertyName && <div style={{ fontSize: 13, color: "#8a8375", marginTop: -8, marginBottom: 4 }}>{propertyName}</div>}
-      <div style={monthBadge}>Reading for {billingMonthLabel()}</div>
-      {lastUnits != null && (
-        <div style={{ fontSize: 13, color: "#8a857a", marginTop: -8, marginBottom: 14 }}>
-          Last recorded: <strong style={{ color: "#3b6478" }}>{lastUnits} units</strong>
-        </div>
-      )}
+    <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px 40px", minHeight: "100vh", background: "#f6f2ea" }}>
+      <div style={{ textAlign: "center", marginBottom: 4 }}>
+        <div style={eyebrow}>Your home</div>
+        <h1 style={{ ...h1, margin: "4px 0 2px" }}>{tenantName}</h1>
+        {propertyName && <div style={{ fontSize: 13, color: "#8a857a", marginBottom: 16 }}>{propertyName}</div>}
+      </div>
 
-      <label style={bigBtn}>
-        📷 {photo ? "Retake photo" : "Take a photo of your meter"}
-        <input type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
-      </label>
-
-      {preview && (
-        <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 12, margin: "14px 0", border: "1px solid #e4ddd0" }} />
-      )}
-
-      {stage === "confirm" && (
-        <div>
-          <p style={{ color: "#3b5b6b", fontWeight: 600 }}>
-            Please type the number shown on your meter.
-          </p>
-          <label style={fieldLabel}>Meter number</label>
-          <input
-            inputMode="numeric"
-            value={reading}
-            onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))}
-            style={input}
-            placeholder="e.g. 4521"
-          />
-          {err && <p style={{ color: "#c0392b", fontSize: 14 }}>{err}</p>}
-          <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
-          </button>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-      )}
+      <DuesCard />
+      <MeterCard />
+      <ContactsCard />
 
       {showConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(31,36,33,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
@@ -267,7 +321,7 @@ function TenantForm() {
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -281,6 +335,10 @@ const Card = ({ children }) => (
     <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 20, padding: 26, textAlign: "center", boxShadow: "0 4px 16px rgba(60,50,30,0.06), 0 1px 3px rgba(60,50,30,0.04)" }}>{children}</div>
   </div>
 );
+const DashCard = ({ children }) => (
+  <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14, textAlign: "left", boxShadow: "0 2px 10px rgba(60,50,30,0.05)" }}>{children}</div>
+);
+const cardLabel = { fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#8a857a", fontWeight: 700 };
 const eyebrow = { fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#b06a3c", fontWeight: 600 };
 const h1 = { fontFamily: "Georgia, serif", fontSize: 27, margin: "6px 0 8px", color: "#232826", fontWeight: 600 };
 const monthBadge = { display: "inline-block", background: "#eef3f5", color: "#3b6478", fontSize: 13, fontWeight: 600, borderRadius: 20, padding: "6px 15px", margin: "2px auto 20px" };

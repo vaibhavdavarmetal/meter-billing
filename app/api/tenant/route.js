@@ -48,6 +48,32 @@ export async function GET(req) {
   });
   const lastUnits = history.length ? history[history.length - 1].units : null;
 
+  // Previous meter reading (last saved bill's current reading) — shown upfront on the meter card.
+  let previousReading = null;
+  for (let i = found_bills.length - 1; i >= 0; i--) {
+    const b = await getBill(found_bills[i].period, slug);
+    if (b && b.currentReading != null) { previousReading = b.currentReading; break; }
+  }
+  if (previousReading == null && found.tenant.startReading) previousReading = Number(found.tenant.startReading);
+
+  // Dues: only from a FINALIZED (saved) bill for the current month.
+  const currentBill = await getBill(period, slug);
+  let dues = null;
+  if (currentBill && currentBill.amount != null) {
+    const paid = !!currentBill.paid;
+    const outstanding = currentBill.outstanding != null ? currentBill.outstanding : (paid ? 0 : currentBill.amount);
+    dues = {
+      amount: currentBill.amount,
+      paid,
+      outstanding,
+      carryIn: currentBill.carryIn || 0,
+      status: paid ? "paid" : (outstanding > 0 ? "pending" : outstanding < 0 ? "overpaid" : "pending"),
+    };
+  }
+
+  // Maintenance contacts for this tenant's property (managed in admin).
+  const contacts = (found.property.contacts || []).filter((c) => c && c.name && c.phone);
+
   return Response.json({
     name: found.tenant.name,
     propertyName: found.property.name,
@@ -55,7 +81,10 @@ export async function GET(req) {
     submitted,
     reading: submitted ? existing.reading : null,
     submittedAt: submitted ? existing.submittedAt : null,
-    history,      // [{label, units}] oldest→newest, up to 12 months
-    lastUnits,    // most recent recorded units (for the first screen)
+    history,
+    lastUnits,
+    previousReading,   // last meter reading, shown upfront
+    dues,              // finalized dues for this month, or null
+    contacts,          // [{label,name,phone}] for maintenance card
   });
 }
