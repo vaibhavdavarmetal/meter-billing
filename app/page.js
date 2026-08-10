@@ -236,11 +236,10 @@ function TenantForm() {
     }
     const s = dues.status;
     const pill = s === "paid" ? { bg: "#e6f0ea", fg: "#3f7a52", t: "Paid" }
-      : s === "overpaid" ? { bg: "#eef3f5", fg: "#3b6478", t: "In credit" }
       : { bg: "#f7ede4", fg: "#b06a3c", t: "Pending" };
-    const headline = s === "overpaid" ? `₹${Math.abs(dues.outstanding).toLocaleString("en-IN")} credit`
-      : s === "paid" ? "All settled"
+    const headline = s === "paid" ? "All settled"
       : `₹${(dues.outstanding).toLocaleString("en-IN")}`;
+    const adj = dues.adjustment || 0;
     return (
       <DashCard>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -248,7 +247,14 @@ function TenantForm() {
           <span style={{ background: pill.bg, color: pill.fg, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>{pill.t}</span>
         </div>
         <div style={{ fontFamily: "Georgia, serif", fontSize: 30, color: "#232826", marginTop: 6 }}>{headline}</div>
-        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
+        {adj !== 0 && (
+          <div style={{ fontSize: 13, marginTop: 8, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "#eef3f5" : "#f7ede4", color: adj < 0 ? "#3b6478" : "#b06a3c" }}>
+            {adj < 0
+              ? `You paid ₹${Math.abs(adj).toLocaleString("en-IN")} extra — this will be adjusted (credited) in your next bill.`
+              : `You paid ₹${adj.toLocaleString("en-IN")} less — this will be added to your next bill.`}
+          </div>
+        )}
+        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
         <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>Bill for {billingMonthLabel()}</div>
       </DashCard>
     );

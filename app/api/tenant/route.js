@@ -65,12 +65,21 @@ export async function GET(req) {
   if (currentBill && currentBill.amount != null) {
     const paid = !!currentBill.paid;
     const outstanding = currentBill.outstanding != null ? currentBill.outstanding : (paid ? 0 : currentBill.amount);
+    // Status reflects THIS month only: paid = settled, else pending.
+    const status = paid ? "paid" : (outstanding > 0 ? "pending" : "pending");
+    // If paid but the amount differed, it's not an unpaid balance — it's an adjustment
+    // that carries into the next bill. Surface it separately from status.
+    let adjustment = 0;
+    if (paid && currentBill.outstanding != null && currentBill.outstanding !== 0) {
+      adjustment = currentBill.outstanding; // +ve = short (added next bill), -ve = extra (credit next bill)
+    }
     dues = {
       amount: currentBill.amount,
       paid,
       outstanding,
+      adjustment,
       carryIn: currentBill.carryIn || 0,
-      status: paid ? "paid" : (outstanding > 0 ? "pending" : outstanding < 0 ? "overpaid" : "pending"),
+      status,
     };
   }
 
