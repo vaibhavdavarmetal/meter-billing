@@ -59,6 +59,7 @@ function TenantForm() {
   const [dues, setDues] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [showChart, setShowChart] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("t");
@@ -78,7 +79,10 @@ function TenantForm() {
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setLoaded(true));
+    } else {
+      setLoaded(true);
     }
   }, []);
 
@@ -157,6 +161,45 @@ function TenantForm() {
       setSubmitting(false);
     }
   };
+
+  // Skeleton loading — real labels shown, only the data shimmers (feels oriented, no empty flash)
+  if (!loaded) {
+    const Sk = ({ w, h, mt }) => (
+      <div style={{ width: w, height: h || 14, marginTop: mt || 0, borderRadius: 6, background: "linear-gradient(90deg,#eee7db 25%,#f3eee4 37%,#eee7db 63%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
+    );
+    return (
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px 40px", minHeight: "100vh", background: "#f6f2ea" }}>
+        <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
+        <div style={{ textAlign: "center", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <div style={eyebrow}>Your home</div>
+          <Sk w={160} h={22} mt={2} />
+          <Sk w={90} h={12} />
+        </div>
+        {/* dues */}
+        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14 }}>
+          <div style={cardLabel}>Account</div>
+          <Sk w={140} h={28} mt={12} />
+          <Sk w={110} h={11} mt={10} />
+        </div>
+        {/* meter */}
+        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14 }}>
+          <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
+          <Sk w={130} h={14} mt={12} />
+          <Sk w="100%" h={52} mt={16} />
+        </div>
+        {/* contacts */}
+        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20 }}>
+          <div style={cardLabel}>Maintenance & help</div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#eee7db" }} />
+              <div style={{ flex: 1 }}><Sk w="55%" h={13} /><Sk w="35%" h={10} mt={6} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!slug) {
     return (
