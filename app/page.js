@@ -248,7 +248,16 @@ function TenantForm() {
         </div>
         <div style={{ fontFamily: "Georgia, serif", fontSize: 30, color: "#232826", marginTop: 6 }}>{headline}</div>
         {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
-        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>Bill for {billingMonthLabel()}</div>
+        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 8, lineHeight: 1.6 }}>
+          <div>Bill for {billingMonthLabel()}</div>
+          <div>
+            {`Electricity ₹${(dues.electricity || 0).toLocaleString("en-IN")} + Rent ₹${(dues.rent || 0).toLocaleString("en-IN")}`}
+            {dues.misc ? ` + Misc ₹${dues.misc.toLocaleString("en-IN")}` : ""}
+            {dues.carryIn ? ` ${dues.carryIn > 0 ? "+" : "−"} ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")}` : ""}
+            {` = ₹${(dues.amount || 0).toLocaleString("en-IN")}`}
+          </div>
+          {dues.paidAmount != null && <div>Paid: ₹{dues.paidAmount.toLocaleString("en-IN")}</div>}
+        </div>
         {adj !== 0 && (
           <div style={{ fontSize: 13, marginTop: 10, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "#eef3f5" : "#f7ede4", color: adj < 0 ? "#3b6478" : "#b06a3c" }}>
             {adj < 0
@@ -262,19 +271,31 @@ function TenantForm() {
 
   const ContactsCard = () => {
     if (!contacts || contacts.length === 0) return null;
+    // Group contacts by their role/category label, preserving first-seen order.
+    const groups = [];
+    const byLabel = {};
+    contacts.forEach((c) => {
+      const key = (c.label || "Other").trim() || "Other";
+      if (!byLabel[key]) { byLabel[key] = []; groups.push(key); }
+      byLabel[key].push(c);
+    });
     return (
       <DashCard>
         <div style={cardLabel}>Maintenance & help</div>
-        <div style={{ marginTop: 8 }}>
-          {contacts.map((c, i) => (
-            <a key={i} href={`tel:${c.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: i ? "1px solid #f0ebe1" : "none", textDecoration: "none", color: "#232826" }}>
-              <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#eef3f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📞</span>
-              <span style={{ flex: 1, textAlign: "left" }}>
-                <span style={{ display: "block", fontWeight: 600, fontSize: 15 }}>{c.name}</span>
-                <span style={{ display: "block", fontSize: 12, color: "#8a857a" }}>{c.label || "Contact"}</span>
-              </span>
-              <span style={{ color: "#3b6478", fontWeight: 600, fontSize: 14 }}>Call</span>
-            </a>
+        <div style={{ marginTop: 6 }}>
+          {groups.map((label, gi) => (
+            <div key={label} style={{ marginTop: gi ? 16 : 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#3b6478", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
+              {byLabel[label].map((c, i) => (
+                <a key={i} href={`tel:${c.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i ? "1px solid #f0ebe1" : "none", textDecoration: "none", color: "#232826" }}>
+                  <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#eef3f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📞</span>
+                  <span style={{ flex: 1, textAlign: "left" }}>
+                    <span style={{ display: "block", fontWeight: 600, fontSize: 15 }}>{c.name}</span>
+                  </span>
+                  <span style={{ color: "#3b6478", fontWeight: 600, fontSize: 14 }}>Call</span>
+                </a>
+              ))}
+            </div>
           ))}
         </div>
       </DashCard>

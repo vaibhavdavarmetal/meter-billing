@@ -1,5 +1,5 @@
 import { liveProperties, findTenantIn } from "../../../lib/registry";
-import { getReading, getBill, getBillsForPeriods } from "../../../lib/store";
+import { getReading, getBillsForPeriods } from "../../../lib/store";
 
 export const runtime = "nodejs";
 
@@ -23,22 +23,23 @@ export async function GET(req) {
 
   const period = currentPeriod();
   const active = found.tenant.active !== false; // default active unless explicitly false
-  const existing = active ? await getReading(period, slug) : null;
-  // A finalized bill for this month means they've been billed → lock, even if the reading
-  // was entered manually (e.g. tenant sent a WhatsApp screenshot, no app submission).
-  const billThisMonth = active ? await getBill(period, slug) : null;
-  const submitted = active && (
-    (!!existing && !existing.unlockedForResubmit) ||
-    (!!billThisMonth && billThisMonth.currentReading != null && !(existing && existing.unlockedForResubmit))
-  );
 
-  // Gather this tenant's saved bills for the last 13 months → units per cycle.
-  // Fetch all months in PARALLEL (not one-by-one) and reuse the results.
+  // Build the 13-month window and fetch the reading + all bills in PARALLEL (no sequential waits).
   let [y, m] = period.split("-").map(Number);
   const months = [];
   for (let i = 0; i < 13; i++) { months.push(`${y}-${String(m).padStart(2, "0")}`); m -= 1; if (m < 1) { m = 12; y -= 1; } }
   months.reverse();
-  const billByPeriod = await getBillsForPeriods(months, slug);
+
+  const [existing, billByPeriod] = await Promise.all([
+    active ? getReading(period, slug) : Promise.resolve(null),
+    getBillsForPeriods(months, slug),
+  ]);
+  // Current month's bill comes from the batch — no separate fetch.
+  const billThisMonth = active ? (billByPeriod[period] || null) : null;
+  const submitted = active && (
+    (!!existing && !existing.unlockedForResubmit) ||
+    (!!billThisMonth && billThisMonth.currentReading != null && !(existing && existing.unlockedForResubmit))
+  );
 
   const found_bills = [];
   months.forEach((p) => { const b = billByPeriod[p]; if (b && b.units != null) found_bills.push({ period: p, units: b.units }); });
@@ -79,6 +80,10 @@ export async function GET(req) {
       outstanding,
       adjustment,
       carryIn: currentBill.carryIn || 0,
+      electricity: currentBill.electricity || 0,
+      rent: currentBill.rent || 0,
+      misc: currentBill.misc || 0,
+      paidAmount: currentBill.paidAmount != null ? currentBill.paidAmount : (paid ? currentBill.amount : null),
       status,
     };
   }
