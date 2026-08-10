@@ -57,6 +57,7 @@ function TenantForm() {
   const [lastUnits, setLastUnits] = useState(null); // most recent recorded units
   const [previousReading, setPreviousReading] = useState(null);
   const [dues, setDues] = useState(null);
+  const [reminder, setReminder] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [showChart, setShowChart] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -75,6 +76,7 @@ function TenantForm() {
           if (d && d.lastUnits != null) setLastUnits(d.lastUnits);
           if (d && d.previousReading != null) setPreviousReading(d.previousReading);
           if (d && d.dues) setDues(d.dues);
+          if (d && d.reminder) setReminder(d.reminder);
           if (d && d.contacts) setContacts(d.contacts);
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
@@ -227,10 +229,22 @@ function TenantForm() {
   // ── Dashboard sub-cards ──
   const DuesCard = () => {
     if (!dues) {
+      const carried = reminder ? (reminder.carried || 0) : 0;
       return (
         <DashCard>
-          <div style={cardLabel}>Account</div>
-          <div style={{ fontSize: 15, color: "#8a857a", marginTop: 4 }}>No dues right now. Your bill for {billingMonthLabel()} will appear here once it's finalised.</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={cardLabel}>Account</div>
+            <span style={{ background: "#f7ede4", color: "#b06a3c", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>Rent due</span>
+          </div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#232826", marginTop: 8 }}>Rent for {billingMonthLabel()} is due</div>
+          {carried !== 0 && (
+            <div style={{ fontSize: 13, marginTop: 8, padding: "8px 10px", borderRadius: 8, background: carried < 0 ? "#eef3f5" : "#f7ede4", color: carried < 0 ? "#3b6478" : "#b06a3c" }}>
+              {carried < 0
+                ? `You have ₹${Math.abs(carried).toLocaleString("en-IN")} credit from last month — it'll be adjusted in this bill.`
+                : `₹${carried.toLocaleString("en-IN")} was carried from last month — it'll be added to this bill.`}
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 10 }}>Submit your meter reading below to get your final bill from the owner.</div>
         </DashCard>
       );
     }

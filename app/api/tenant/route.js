@@ -91,6 +91,22 @@ export async function GET(req) {
   // Maintenance contacts for this tenant's property (managed in admin).
   const contacts = (found.property.contacts || []).filter((c) => c && c.name && c.phone);
 
+  // Month-start reminder: if there's no finalized bill for THIS month yet, look at the most
+  // recent finalized bill to carry forward any over/under adjustment (credit or shortfall).
+  let reminder = null;
+  if (!dues) {
+    let lastBill = null;
+    for (let i = months.length - 1; i >= 0; i--) {
+      if (months[i] === period) continue; // skip current (unbilled) month
+      const b = billByPeriod[months[i]];
+      if (b && b.amount != null) { lastBill = b; break; }
+    }
+    // Carried adjustment: +ve = they still owe (shortfall), -ve = credit (overpaid)
+    let carried = 0;
+    if (lastBill && lastBill.outstanding != null && lastBill.outstanding !== 0) carried = lastBill.outstanding;
+    reminder = { rentDue: true, carried };
+  }
+
   return Response.json({
     name: found.tenant.name,
     propertyName: found.property.name,
@@ -102,6 +118,7 @@ export async function GET(req) {
     lastUnits,
     previousReading,   // last meter reading, shown upfront
     dues,              // finalized dues for this month, or null
+    reminder,          // month-start reminder (rent due + carried adjustment) when no bill yet
     contacts,          // [{label,name,phone}] for maintenance card
   });
 }
