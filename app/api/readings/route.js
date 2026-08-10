@@ -34,6 +34,18 @@ export async function POST(req) {
           paid: !!b.paid,
           photoUrl: b.photoUrl || null, savedAt: new Date().toISOString(),
         });
+        // If the tenant never submitted through the app (e.g. sent a WhatsApp screenshot and the
+        // owner entered it manually), lock their link for this month so they can't also submit.
+        if (b.currentReading != null) {
+          const existingReading = await getReading(period, b.slug);
+          if (!existingReading) {
+            await saveReading(period, b.slug, {
+              slug: b.slug, reading: Number(b.currentReading),
+              enteredByAdmin: true, photoUrl: b.photoUrl || null,
+              submittedAt: new Date().toISOString(),
+            });
+          }
+        }
       }
       return Response.json({ ok: true, period });
     }

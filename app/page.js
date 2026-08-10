@@ -168,7 +168,7 @@ function TenantForm() {
       <div style={{ width: w, height: h || 14, marginTop: mt || 0, borderRadius: 6, background: "linear-gradient(90deg,#eee7db 25%,#f3eee4 37%,#eee7db 63%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
     );
     return (
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px 40px", minHeight: "100vh", background: "#f6f2ea" }}>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px calc(90px + env(safe-area-inset-bottom))", minHeight: "100vh", background: "#f6f2ea" }}>
         <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
         <div style={{ textAlign: "center", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
           <div style={eyebrow}>Your home</div>
@@ -339,7 +339,7 @@ function TenantForm() {
   };
 
   return (
-    <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px 40px", minHeight: "100vh", background: "#f6f2ea" }}>
+    <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px calc(90px + env(safe-area-inset-bottom))", background: "#f6f2ea" }}>
       <div style={{ textAlign: "center", marginBottom: 4 }}>
         <div style={eyebrow}>Your home</div>
         <h1 style={{ ...h1, margin: "4px 0 2px" }}>{tenantName}</h1>
