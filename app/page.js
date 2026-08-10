@@ -247,15 +247,15 @@ function TenantForm() {
           <span style={{ background: pill.bg, color: pill.fg, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>{pill.t}</span>
         </div>
         <div style={{ fontFamily: "Georgia, serif", fontSize: 30, color: "#232826", marginTop: 6 }}>{headline}</div>
+        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
+        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>Bill for {billingMonthLabel()}</div>
         {adj !== 0 && (
-          <div style={{ fontSize: 13, marginTop: 8, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "#eef3f5" : "#f7ede4", color: adj < 0 ? "#3b6478" : "#b06a3c" }}>
+          <div style={{ fontSize: 13, marginTop: 10, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "#eef3f5" : "#f7ede4", color: adj < 0 ? "#3b6478" : "#b06a3c" }}>
             {adj < 0
               ? `You paid ₹${Math.abs(adj).toLocaleString("en-IN")} extra — this will be adjusted (credited) in your next bill.`
               : `You paid ₹${adj.toLocaleString("en-IN")} less — this will be added to your next bill.`}
           </div>
         )}
-        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
-        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 4 }}>Bill for {billingMonthLabel()}</div>
       </DashCard>
     );
   };
