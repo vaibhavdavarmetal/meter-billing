@@ -172,7 +172,7 @@ function TenantForm() {
         <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
         <div style={{ textAlign: "center", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
           <div style={eyebrow}>Your home</div>
-          <Sk w={160} h={22} mt={2} />
+          <h1 style={{ ...h1, margin: "2px 0 0" }}>{tenantName || <Sk w={160} h={22} />}</h1>
           <Sk w={90} h={12} />
         </div>
         {/* dues */}

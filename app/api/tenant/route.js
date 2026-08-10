@@ -1,5 +1,5 @@
 import { liveProperties, findTenantIn } from "../../../lib/registry";
-import { getReading, getBill } from "../../../lib/store";
+import { getReading, getBill, getBillsForPeriods } from "../../../lib/store";
 
 export const runtime = "nodejs";
 
@@ -26,38 +26,35 @@ export async function GET(req) {
   const existing = active ? await getReading(period, slug) : null;
   const submitted = !!(existing && !existing.unlockedForResubmit);
 
-  // Gather this tenant's saved bills for the last 12 months → units per cycle.
-  // Each bar's usage ran from the PREVIOUS reading to this one, so label it as a span
-  // e.g. a reading taken in Aug (prev in Jul) covers "Jul–Aug".
-  const found_bills = [];
+  // Gather this tenant's saved bills for the last 13 months → units per cycle.
+  // Fetch all months in PARALLEL (not one-by-one) and reuse the results.
   let [y, m] = period.split("-").map(Number);
   const months = [];
   for (let i = 0; i < 13; i++) { months.push(`${y}-${String(m).padStart(2, "0")}`); m -= 1; if (m < 1) { m = 12; y -= 1; } }
   months.reverse();
-  for (const p of months) {
-    const b = await getBill(p, slug);
-    if (b && b.units != null) found_bills.push({ period: p, units: b.units });
-  }
-  const history = found_bills.map((b, i) => {
+  const billByPeriod = await getBillsForPeriods(months, slug);
+
+  const found_bills = [];
+  months.forEach((p) => { const b = billByPeriod[p]; if (b && b.units != null) found_bills.push({ period: p, units: b.units }); });
+  const history = found_bills.map((b) => {
     const [yy, mm] = b.period.split("-").map(Number);
     const endLabel = MONTHS[mm - 1];
-    // start month = previous reading's month if we have it, else one month before this
-    let sy = yy, sm = mm - 1; if (sm < 1) { sm = 12; sy -= 1; }
+    let sm = mm - 1; if (sm < 1) { sm = 12; }
     const startLabel = MONTHS[sm - 1];
     return { label: `${startLabel}–${endLabel}`, shortEnd: `${endLabel} ${String(yy).slice(2)}`, units: b.units };
   });
   const lastUnits = history.length ? history[history.length - 1].units : null;
 
-  // Previous meter reading (last saved bill's current reading) — shown upfront on the meter card.
+  // Previous meter reading — reuse already-loaded bills (no extra fetches).
   let previousReading = null;
-  for (let i = found_bills.length - 1; i >= 0; i--) {
-    const b = await getBill(found_bills[i].period, slug);
+  for (let i = months.length - 1; i >= 0; i--) {
+    const b = billByPeriod[months[i]];
     if (b && b.currentReading != null) { previousReading = b.currentReading; break; }
   }
   if (previousReading == null && found.tenant.startReading) previousReading = Number(found.tenant.startReading);
 
-  // Dues: only from a FINALIZED (saved) bill for the current month.
-  const currentBill = await getBill(period, slug);
+  // Dues: current month's bill is already loaded above.
+  const currentBill = billByPeriod[period];
   let dues = null;
   if (currentBill && currentBill.amount != null) {
     const paid = !!currentBill.paid;
