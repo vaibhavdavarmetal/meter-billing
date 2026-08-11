@@ -337,10 +337,10 @@ export default function Admin(){
     const setProp=(pk,f,v)=>setReg({...reg,[pk]:{...reg[pk],[f]:v}});
     const setTen=(pk,i,f,v)=>{ const n=structuredClone(reg); n[pk].tenants[i][f]=v; setReg(n); };
     const addTen=(pk)=>{ const n=structuredClone(reg); n[pk].tenants.push({slug:pk+"-"+(n[pk].tenants.length+1),name:"New Tenant",rent:0,misc:0}); setReg(n); };
-    const removeTen=(pk,i)=>{ const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); };
+    const removeTen=(pk,i)=>{ const t=reg[pk].tenants[i]; if(!window.confirm(`Remove ${t.name||"this tenant"}? This removes them from the list. Past bills and readings stay saved. You can re-add them later.`)) return; const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); };
     const setContact=(pk,ci,f,v)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts[ci][f]=v; setReg(n); };
     const addContact=(pk)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts.push({label:"",name:"",phone:""}); setReg(n); };
-    const removeContact=(pk,ci)=>{ const n=structuredClone(reg); n[pk].contacts.splice(ci,1); setReg(n); };
+    const removeContact=(pk,ci)=>{ const c=reg[pk].contacts[ci]; if(!window.confirm(`Remove ${c.name||"this contact"}${c.label?` (${c.label})`:""}?`)) return; const n=structuredClone(reg); n[pk].contacts.splice(ci,1); setReg(n); };
     const save=async()=>{
       setRegMsg("");
       const fixed=structuredClone(reg);

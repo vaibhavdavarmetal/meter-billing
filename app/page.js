@@ -59,6 +59,7 @@ function TenantForm() {
   const [dues, setDues] = useState(null);
   const [reminder, setReminder] = useState(null);
   const [contacts, setContacts] = useState([]);
+  const [ownerWhatsapp, setOwnerWhatsapp] = useState(null);
   const [showChart, setShowChart] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -78,6 +79,7 @@ function TenantForm() {
           if (d && d.dues) setDues(d.dues);
           if (d && d.reminder) setReminder(d.reminder);
           if (d && d.contacts) setContacts(d.contacts);
+          if (d && d.ownerWhatsapp) setOwnerWhatsapp(d.ownerWhatsapp);
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
@@ -329,6 +331,15 @@ function TenantForm() {
             {stage === "done" ? reading : (lockedInfo && lockedInfo.reading != null ? lockedInfo.reading : "—")}
           </div>
           <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2 }}>Your submitted reading. Contact the owner if it needs changing.</div>
+          {stage === "done" && ownerWhatsapp && (
+            <a
+              href={`https://wa.me/${ownerWhatsapp}?text=${encodeURIComponent(`Hi, I've submitted my meter reading (${reading}) for ${billingMonthLabel()}${propertyName ? ` at ${propertyName}` : ""}${tenantName ? ` — ${tenantName}` : ""}. Please verify. Thank you.`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "12px", borderRadius: 12, background: "#25D366", color: "#fff", fontWeight: 600, fontSize: 15, textDecoration: "none" }}
+            >
+              Notify owner on WhatsApp
+            </a>
+          )}
           {history.length > 0 && (
             <div style={{ marginTop: 14, borderTop: "1px solid #f0ebe1", paddingTop: 12 }}>
               <button onClick={() => setShowChart((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, color: "#3b6478", fontWeight: 600, fontSize: 14 }}>
@@ -387,9 +398,9 @@ function TenantForm() {
         {propertyName && <div style={{ fontSize: 13, color: "#8a857a", marginBottom: 16 }}>{propertyName}</div>}
       </div>
 
-      <DuesCard />
-      <MeterCard />
-      <ContactsCard />
+      {DuesCard()}
+      {MeterCard()}
+      {ContactsCard()}
 
       {showConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(31,36,33,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>

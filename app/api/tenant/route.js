@@ -1,5 +1,6 @@
 import { liveProperties, findTenantIn } from "../../../lib/registry";
 import { getReading, getBillsForPeriods } from "../../../lib/store";
+import { OWNER_WHATSAPP } from "../../../lib/config";
 
 export const runtime = "nodejs";
 
@@ -127,5 +128,6 @@ export async function GET(req) {
     dues,              // finalized dues for this month, or null
     reminder,          // month-start reminder (rent due + carried adjustment) when no bill yet
     contacts,          // [{label,name,phone}] for maintenance card
+    ownerWhatsapp: OWNER_WHATSAPP && !OWNER_WHATSAPP.includes("X") ? OWNER_WHATSAPP : null,
   });
 }
