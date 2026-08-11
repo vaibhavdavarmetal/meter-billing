@@ -112,7 +112,14 @@ export async function GET(req) {
     propertyName: found.property.name,
     active,
     submitted,
-    reading: submitted ? (existing ? existing.reading : (billThisMonth ? billThisMonth.currentReading : null)) : null,
+    // Reading to show: the admin-approved bill's currentReading is authoritative once a bill
+    // exists (owner verifies/corrects on approve). Fall back to the tenant's raw submission
+    // only when there's no finalized bill yet.
+    reading: submitted
+      ? ((billThisMonth && billThisMonth.currentReading != null)
+          ? billThisMonth.currentReading
+          : (existing ? existing.reading : null))
+      : null,
     submittedAt: submitted ? (existing ? existing.submittedAt : (billThisMonth ? billThisMonth.savedAt : null)) : null,
     history,
     lastUnits,
