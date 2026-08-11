@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import {
   saveReading, getReading, getPeriodReadings, saveBill, getPeriodBills, getLatestBillBefore,
   getPeriodExtras, saveExtras, getPeriodApprovals, saveApproval,
+  getSettlement, saveSettlement, getRegistry, saveRegistry,
 } from "../../../lib/store";
 import { ADMIN_PASSWORD } from "../../../lib/config";
 import { liveProperties, allTenantsFrom, findTenantIn } from "../../../lib/registry";
@@ -48,6 +49,53 @@ export async function POST(req) {
         }
       }
       return Response.json({ ok: true, period });
+    }
+
+    if (body.action === "confirm-start") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      if (!findTenantIn(props, body.slug)) return Response.json({ error: "Unknown tenant" }, { status: 404 });
+      const pending = await getReading("start", body.slug);
+      const reg = await getRegistry();
+      if (reg) {
+        for (const p of Object.values(reg)) {
+          if (!Array.isArray(p.tenants)) continue;
+          const t = p.tenants.find((x) => x.slug === body.slug);
+          if (t) {
+            t.startReading = Number(body.reading);
+            if (pending && pending.photoUrl) t.startPhotoUrl = pending.photoUrl;
+            // Record the move-in month so the tenant dashboard opens fully only next month.
+            const now = new Date();
+            t.startMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+            break;
+          }
+        }
+        await saveRegistry(reg);
+      }
+      // clear the pending marker
+      await saveReading("start", body.slug, { slug: body.slug, isStartPending: false, confirmedReading: Number(body.reading), confirmedAt: new Date().toISOString() });
+      return Response.json({ ok: true });
+    }
+
+    if (body.action === "save-settlement") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      if (!findTenantIn(props, body.slug)) return Response.json({ error: "Unknown tenant" }, { status: 404 });
+      await saveSettlement(body.slug, { ...body.settlement, slug: body.slug, savedAt: new Date().toISOString() });
+      return Response.json({ ok: true });
+    }
+
+    if (body.action === "deactivate-tenant") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      const reg = await getRegistry();
+      if (!reg) return Response.json({ error: "No registry" }, { status: 404 });
+      let done = false;
+      for (const p of Object.values(reg)) {
+        if (!Array.isArray(p.tenants)) continue;
+        const t = p.tenants.find((x) => x.slug === body.slug);
+        if (t) { t.active = false; done = true; break; }
+      }
+      if (!done) return Response.json({ error: "Tenant not found" }, { status: 404 });
+      await saveRegistry(reg);
+      return Response.json({ ok: true });
     }
 
     if (body.action === "save-extras") {
@@ -98,6 +146,26 @@ export async function POST(req) {
     const found = findTenantIn(props, slug);
     if (!found) return Response.json({ error: "Unknown tenant" }, { status: 404 });
     if (found.tenant.active === false) return Response.json({ error: "inactive" }, { status: 403 });
+
+    // Move-in baseline: save the tenant's onboarding submission as a PENDING starting reading
+    // (with photo) for the owner to verify. It does NOT set startReading directly.
+    if (body.isStart) {
+      const hasStart = found.tenant.startReading != null && Number(found.tenant.startReading) > 0;
+      if (!hasStart) {
+        let startPhotoUrl = null;
+        if (imageBase64 && process.env.BLOB_READ_WRITE_TOKEN) {
+          const buf = Buffer.from(imageBase64, "base64");
+          const blob = await put(`meters/start/${slug}.jpg`, buf, { access: "public", contentType: mediaType || "image/jpeg", addRandomSuffix: true });
+          startPhotoUrl = blob.url;
+        }
+        await saveReading("start", slug, {
+          slug, reading: Number(reading), photoUrl: startPhotoUrl,
+          isStartPending: true, submittedAt: new Date().toISOString(),
+        });
+        return Response.json({ ok: true, start: true, reading: Number(reading) });
+      }
+      // already has a baseline — fall through to normal handling
+    }
 
     // Lock: if already submitted for this month and not unlocked, reject.
     const existing = await getReading(period, slug);

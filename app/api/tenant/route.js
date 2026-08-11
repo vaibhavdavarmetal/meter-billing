@@ -61,6 +61,18 @@ export async function GET(req) {
   }
   if (previousReading == null && found.tenant.startReading) previousReading = Number(found.tenant.startReading);
 
+  // Onboarding: a brand-new tenant has no start reading, no bills, and no reading yet.
+  // Their first submission is the move-in baseline (pending owner verification).
+  const hasAnyBill = months.some((p) => { const b = billByPeriod[p]; return b && b.amount != null; });
+  const hasStart = found.tenant.startReading != null && Number(found.tenant.startReading) > 0;
+  const startPending = active && !hasStart ? await getReading("start", slug) : null;
+  const startSubmitted = !!(startPending && startPending.isStartPending);
+  const awaitingStart = active && !hasStart && !hasAnyBill && !existing && !startSubmitted;
+
+  // Settling-in: baseline is confirmed but we're still within the move-in month and no bill
+  // exists yet. The dashboard stays calm until the 1st of the next month.
+  const settlingIn = active && hasStart && !hasAnyBill && found.tenant.startMonth === period;
+
   // Dues: current month's bill is already loaded above.
   const currentBill = billByPeriod[period];
   let dues = null;
@@ -125,6 +137,9 @@ export async function GET(req) {
     history,
     lastUnits,
     previousReading,   // last meter reading, shown upfront
+    awaitingStart,     // true = new tenant needs to submit move-in baseline first
+    startSubmitted,    // true = baseline submitted, awaiting owner confirmation
+    settlingIn,        // true = baseline confirmed, still in move-in month, dashboard opens next month
     dues,              // finalized dues for this month, or null
     reminder,          // month-start reminder (rent due + carried adjustment) when no bill yet
     contacts,          // [{label,name,phone}] for maintenance card

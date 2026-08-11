@@ -56,6 +56,9 @@ function TenantForm() {
   const [history, setHistory] = useState([]);      // [{label, units}]
   const [lastUnits, setLastUnits] = useState(null); // most recent recorded units
   const [previousReading, setPreviousReading] = useState(null);
+  const [awaitingStart, setAwaitingStart] = useState(false);
+  const [startSubmitted, setStartSubmitted] = useState(false);
+  const [settlingIn, setSettlingIn] = useState(false);
   const [dues, setDues] = useState(null);
   const [reminder, setReminder] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -76,6 +79,9 @@ function TenantForm() {
           if (d && d.history) setHistory(d.history);
           if (d && d.lastUnits != null) setLastUnits(d.lastUnits);
           if (d && d.previousReading != null) setPreviousReading(d.previousReading);
+          if (d && d.awaitingStart) setAwaitingStart(true);
+          if (d && d.startSubmitted) setStartSubmitted(true);
+          if (d && d.settlingIn) setSettlingIn(true);
           if (d && d.dues) setDues(d.dues);
           if (d && d.reminder) setReminder(d.reminder);
           if (d && d.contacts) setContacts(d.contacts);
@@ -147,7 +153,7 @@ function TenantForm() {
       const res = await fetch("/api/readings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, reading, imageBase64: photo, mediaType }),
+        body: JSON.stringify({ slug, reading, imageBase64: photo, mediaType, isStart: awaitingStart }),
       });
       if (res.status === 409) {
         const d = await res.json().catch(() => ({}));
@@ -319,18 +325,42 @@ function TenantForm() {
   };
 
   const MeterCard = () => {
+    // Baseline submitted, awaiting owner verification
+    if (startSubmitted && stage !== "done") {
+      return (
+        <DashCard>
+          <div style={cardLabel}>Starting meter reading</div>
+          <div style={{ fontSize: 40, margin: "6px 0" }}>⏳</div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#232826" }}>Submitted — awaiting owner confirmation</div>
+          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 6 }}>Thanks! Your starting meter reading has been sent to the owner to verify. Once confirmed, you'll submit your monthly readings here.</div>
+        </DashCard>
+      );
+    }
+    // Settling-in: baseline confirmed, still in move-in month → show as submitted/locked.
+    if (settlingIn) {
+      return (
+        <DashCard>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={cardLabel}>Starting meter reading</div>
+            <span style={{ background: "#e6f0ea", color: "#3f7a52", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>✓ Submitted</span>
+          </div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#232826", marginTop: 8 }}>{previousReading != null ? previousReading : "—"}</div>
+          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2, lineHeight: 1.5 }}>Your starting reading is confirmed. Your first monthly reading will open here on the 1st.</div>
+        </DashCard>
+      );
+    }
     // Submitted / locked state
     if (stage === "locked" || stage === "done") {
       return (
         <DashCard>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
+            <div style={cardLabel}>{awaitingStart ? "Starting meter reading" : `Meter reading · ${billingMonthLabel()}`}</div>
             <span style={{ background: "#e6f0ea", color: "#3f7a52", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>✓ Submitted</span>
           </div>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#232826", marginTop: 8 }}>
             {stage === "done" ? reading : (lockedInfo && lockedInfo.reading != null ? lockedInfo.reading : "—")}
           </div>
-          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2 }}>Your submitted reading. Contact the owner if it needs changing.</div>
+          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2 }}>{awaitingStart ? "Your starting reading is saved. From next month you'll submit monthly readings here." : "Your submitted reading. Contact the owner if it needs changing."}</div>
           {stage === "done" && ownerWhatsapp && (
             <a
               href={`https://wa.me/${ownerWhatsapp}?text=${encodeURIComponent(`Hi, I've submitted my meter reading (${reading}) for ${billingMonthLabel()}${propertyName ? ` at ${propertyName}` : ""}${tenantName ? ` — ${tenantName}` : ""}. Please verify. Thank you.`)}`}
@@ -360,15 +390,19 @@ function TenantForm() {
     // Unlocked / entry state
     return (
       <DashCard>
-        <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
-        {previousReading != null && (
+        <div style={cardLabel}>{awaitingStart ? "Welcome — starting meter reading" : `Meter reading · ${billingMonthLabel()}`}</div>
+        {awaitingStart ? (
+          <div style={{ fontSize: 14, color: "#232826", margin: "8px 0 14px", lineHeight: 1.5 }}>
+            Welcome to your new home! To get started, please take a photo of your electricity meter <strong>today (your move-in day)</strong> and submit the reading. This becomes your starting point — you'll only be billed for what you use from here on.
+          </div>
+        ) : previousReading != null && (
           <div style={{ fontSize: 14, color: "#232826", margin: "8px 0 14px" }}>
             Previous reading: <strong style={{ color: "#3b6478" }}>{previousReading}</strong>
           </div>
         )}
 
         <label style={bigBtn}>
-          📷 {photo ? "Retake photo" : "Take a photo of your meter"}
+          📷 {photo ? "Retake photo" : (awaitingStart ? "Take a photo of your meter" : "Take a photo of your meter")}
           <input type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
         </label>
 
@@ -398,16 +432,26 @@ function TenantForm() {
         {propertyName && <div style={{ fontSize: 13, color: "#8a857a", marginBottom: 16 }}>{propertyName}</div>}
       </div>
 
-      {DuesCard()}
-      {MeterCard()}
+      {settlingIn ? (
+        <>
+          {MeterCard()}
+        </>
+      ) : (
+        <>
+          {!(awaitingStart || startSubmitted) && DuesCard()}
+          {MeterCard()}
+        </>
+      )}
       {ContactsCard()}
 
       {showConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(31,36,33,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 22, maxWidth: 340, width: "100%", textAlign: "left" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 10px", fontFamily: "Georgia, serif" }}>Submit reading of {reading}?</h3>
+            <h3 style={{ margin: "0 0 10px", fontFamily: "Georgia, serif" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
             <p style={{ fontSize: 14, color: "#8a8375", margin: "0 0 18px", lineHeight: 1.5 }}>
-              Once submitted, you <strong>cannot submit again</strong> for {billingMonthLabel()} unless the owner unlocks it. Please make sure your reading is correct.
+              {awaitingStart
+                ? <>This will be saved as your <strong>starting meter reading</strong>. Please make sure it matches your meter today.</>
+                : <>Once submitted, you <strong>cannot submit again</strong> for {billingMonthLabel()} unless the owner unlocks it. Please make sure your reading is correct.</>}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setShowConfirm(false)} style={{ ...submitBtn, background: "#fff", color: "#3b5b6b", border: "1px solid #e4ddd0", marginTop: 0 }}>Cancel</button>

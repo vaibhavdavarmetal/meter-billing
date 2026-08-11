@@ -40,6 +40,8 @@ export default function Admin(){
   const [confirmUnpaid,setConfirmUnpaid]=useState(null); // {slug,pkey} pending unpaid confirmation
   const [paidAmt,setPaidAmt]=useState({}); // slug -> amount actually paid (string)
   const [reportBusy,setReportBusy]=useState(false);
+  const [pendingStarts,setPendingStarts]=useState([]);
+  const [startVals,setStartVals]=useState({});
 
   // Build a bill record for one tenant (used by manual save AND mark-paid auto-save)
   const buildBill=(pkey,prop,t,paidOverride)=>{
@@ -73,6 +75,7 @@ export default function Admin(){
   };
 
   const [reg,setReg]=useState(null);
+  const [startInput,setStartInput]=useState({});
   const [regMsg,setRegMsg]=useState("");
 
   // house help
@@ -136,7 +139,7 @@ export default function Admin(){
     try{ const res=await fetch(`/api/registry?pw=${encodeURIComponent(pw)}`); if(!res.ok) throw new Error(); const d=await res.json(); setReg(d.properties); }
     catch{ setRegMsg("Could not load tenant list."); }
   };
-  const openManage=async()=>{ setView("manage"); if(!reg) await loadRegistry(); };
+  const openManage=async()=>{ setView("manage"); if(!reg) await loadRegistry(); loadPendingStarts(); };
 
   const uploadAgreement=async(slug,file)=>{
     if(!file) return;
@@ -150,6 +153,26 @@ export default function Admin(){
       else { await loadRegistry(); }
     }catch{ alert("Upload failed."); }
     setAgrBusy(b=>({...b,[slug]:false}));
+  };
+
+  const loadPendingStarts=async()=>{
+    try{
+      const res=await fetch(`/api/settlement?pending=1&pw=${encodeURIComponent(pw)}`);
+      if(!res.ok) return;
+      const d=await res.json();
+      setPendingStarts(d.pending||[]);
+      const v={}; (d.pending||[]).forEach(p=>{ v[p.slug]=String(p.reading??""); }); setStartVals(v);
+    }catch{}
+  };
+  const confirmStart=async(slug)=>{
+    const reading=Number(startVals[slug]);
+    if(!reading&&reading!==0){ return; }
+    if(!window.confirm(`Set ${reading} as the starting meter reading? Future bills are measured from this.`)) return;
+    try{
+      const res=await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"confirm-start",pw,slug,reading})});
+      if(!res.ok) throw new Error();
+      await loadPendingStarts();
+    }catch{}
   };
 
   const loadStaff=async(p=period)=>{
@@ -355,6 +378,24 @@ export default function Admin(){
     return (
       <div>
         <p style={{fontSize:13,color:"#8a8375"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
+        <a href="/admin/close-out" style={{display:"block",textAlign:"center",background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",borderRadius:11,padding:"11px",fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:4}}>→ Close out a tenant (final settlement)</a>
+        {pendingStarts.length>0&&(
+          <div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:14,padding:14,marginBottom:12}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Move-in readings to verify</div>
+            {pendingStarts.map(p=>(
+              <div key={p.slug} style={{borderTop:"1px solid var(--line)",paddingTop:10,marginTop:10}}>
+                <div style={{fontWeight:700,fontSize:14}}>{p.name} <span style={{color:"var(--muted)",fontWeight:400}}>· {p.propertyName}</span></div>
+                <div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Tenant submitted: <b style={{color:"var(--slate)"}}>{p.reading}</b></div>
+                {p.photoUrl&&<a href={p.photoUrl} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:6}}><img src={p.photoUrl} alt="meter" style={{maxWidth:140,borderRadius:8,border:"1px solid var(--line)"}}/></a>}
+                <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
+                  <label style={{fontSize:12,color:"var(--muted)"}}>Confirm reading</label>
+                  <input inputMode="numeric" value={startVals[p.slug]??""} onChange={e=>setStartVals({...startVals,[p.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={{...inpSm,width:110}}/>
+                  <button onClick={()=>confirmStart(p.slug)} style={{...btn,width:"auto",padding:"9px 14px",marginTop:0,background:"var(--good)"}}>Confirm</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {Object.entries(reg).map(([pk,prop])=>(
           <div key={pk} style={{marginTop:18}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
@@ -386,6 +427,7 @@ export default function Admin(){
                 <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
                   <div style={{flex:1}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"monospace"}}/></div>
                   <div style={{width:110}}><label style={lblSm}>July start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
+                  <div style={{width:140}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
                   {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"#fff",color:"#c0392b",border:"1px solid #e4ddd0",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
                 </div>
                 {!prop.isTest&&(
