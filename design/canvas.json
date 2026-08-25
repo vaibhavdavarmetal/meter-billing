@@ -17,38 +17,38 @@
     {
       "file": "Main.dc.html",
       "page": "tenant",
-      "title": "Home",
+      "title": "Home \u2014 light",
       "x": 0,
-      "y": 0,
+      "y": 1080,
       "w": 390,
       "h": 844
     },
     {
       "file": "TenantCapture.dc.html",
       "page": "tenant",
-      "title": "Photo taken",
+      "title": "Photo taken \u2014 light",
       "x": 480,
-      "y": 0,
+      "y": 1080,
       "w": 390,
       "h": 844
     },
     {
       "file": "TenantConfirm.dc.html",
       "page": "tenant",
-      "title": "Confirm",
+      "title": "Confirm \u2014 light",
       "x": 960,
-      "y": 0,
+      "y": 1080,
       "w": 390,
       "h": 844
     },
     {
       "file": "TenantSubmitted.dc.html",
       "page": "tenant",
-      "title": "Submitted",
+      "title": "Submitted \u2014 light",
       "x": 1440,
-      "y": 0,
+      "y": 1080,
       "w": 390,
-      "h": 844
+      "h": 980
     },
     {
       "file": "AdminSignIn.dc.html",
@@ -134,31 +134,23 @@
     {
       "file": "TenantHomeDark.dc.html",
       "page": "tenant",
-      "title": "Home \u2014 dark",
+      "title": "Home (default \u00b7 dark)",
       "x": 0,
-      "y": 1080,
+      "y": 0,
       "w": 390,
       "h": 844
     },
     {
       "file": "TenantSubmittedDark.dc.html",
       "page": "tenant",
-      "title": "Submitted \u2014 dark",
+      "title": "Submitted (default \u00b7 dark)",
       "x": 480,
-      "y": 1080,
+      "y": 0,
       "w": 390,
-      "h": 844
+      "h": 980
     }
   ],
   "annotations": [
-    {
-      "id": "tenant-flow",
-      "page": "tenant",
-      "x": 0,
-      "y": -150,
-      "w": 700,
-      "text": "The whole tenant job, left to right: open the link, photograph the meter, check the number, done.\nSubmission is still one-way \u2014 the confirm sheet is where that gets said plainly."
-    },
     {
       "id": "admin-note",
       "page": "admin",
@@ -184,12 +176,12 @@
       "text": "Card open state \u2014 same tenant, web and mobile. Click a card to open it in place: check the photo, fix the reading, approve. Web spreads photo and entry side by side; mobile stacks them."
     },
     {
-      "id": "tenant-dark",
+      "id": "tenant-default",
       "page": "tenant",
       "x": 0,
-      "y": 960,
-      "w": 700,
-      "text": "Dark tenant app \u2014 same screens, dark palette. Note: the live app is light-only today; this shows how a dark theme would look if added."
+      "y": -150,
+      "w": 760,
+      "text": "Tenant app \u2014 dark is the default (top row); the toggle in the header switches to light (row below). After submitting, three cards show: Total due, Meter reading (with the units chart in a collapsed \u201cView detailed units info\u201d accordion, shown open here), and Maintenance."
     }
   ],
   "launch": {
