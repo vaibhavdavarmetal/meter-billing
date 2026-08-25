@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0068d6; text-decoration: none; }
+    a:hover { color: #0055ab; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #fafafa; color: #0a0a0a; overflow: hidden; display: flex; flex-direction: column;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #eaeaea;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: #0a0a0a; display: flex; align-items: center; justify-content: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 14px; font-weight: 600; letter-spacing: -0.011em;">First Floor</div>
+        <div style="font-size: 12px; color: #8f8f8f;">Sector 57</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid #eaeaea; border-radius: 999px; background: #ffffff; font-size: 12px; font-weight: 500; color: #666666;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+      Aug 2026
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px;">
+
+    <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 12px; font-weight: 500; color: #666666;">Total due</div>
+        <div style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: #fff8eb; border: 1px solid #f5e0b3; color: #92400e; font-size: 11px; font-weight: 500;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #b45309;"></span>Pending
+        </div>
+      </div>
+      <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 38px; font-weight: 500; letter-spacing: -0.035em; line-height: 1;">₹4,312</div>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #f2f2f2;">
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+          <span style="color: #666666;">Electricity · 142 units × ₹9</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; color: #0a0a0a;">₹1,278</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+          <span style="color: #666666;">Rent</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; color: #0a0a0a;">₹3,000</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+          <span style="color: #666666;">Water charge</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; color: #0a0a0a;">₹200</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+          <span style="color: #666666;">Carried from July</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; color: #0f7b34;">−₹166</span>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #8f8f8f; line-height: 1.5;">Your owner finalises this bill after checking the reading below.</div>
+    </div>
+
+    <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 12px; font-weight: 500; color: #666666;">Meter reading</div>
+        <div style="font-size: 12px; color: #8f8f8f;">August 2026</div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #eaeaea; border-radius: 8px; background: #fafafa;">
+        <span style="font-size: 13px; color: #666666;">Previous reading</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 500; letter-spacing: -0.02em;">8,412</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 8px; background: #0a0a0a; color: #ffffff; font-size: 15px; font-weight: 500;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+        Take a photo of your meter
+      </div>
+      <div style="font-size: 12px; color: #8f8f8f; line-height: 1.5;">You can submit once for this month. Check the number before you send it.</div>
+    </div>
+
+    <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 16px 16px 6px; display: flex; flex-direction: column;">
+      <div style="font-size: 12px; font-weight: 500; color: #666666; margin-bottom: 4px;">Maintenance</div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 52px; border-bottom: 1px solid #f2f2f2;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fafafa; border: 1px solid #eaeaea; display: flex; align-items: center; justify-content: center; color: #666666;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m14.5 4.5 5 5-2.5 2.5-5-5 2.5-2.5Z"></path><path d="m12 7-7 7v5h5l7-7"></path></svg>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px;">
+          <div style="font-size: 14px; font-weight: 500;">Plumber</div>
+          <div style="font-size: 12px; color: #8f8f8f;">Ramesh</div>
+        </div>
+        <div style="display: flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid #eaeaea; border-radius: 6px; font-size: 13px; font-weight: 500; color: #0a0a0a;">Call</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 52px; border-bottom: 1px solid #f2f2f2;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fafafa; border: 1px solid #eaeaea; display: flex; align-items: center; justify-content: center; color: #666666;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"></path></svg>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px;">
+          <div style="font-size: 14px; font-weight: 500;">Electrician</div>
+          <div style="font-size: 12px; color: #8f8f8f;">Suresh</div>
+        </div>
+        <div style="display: flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid #eaeaea; border-radius: 6px; font-size: 13px; font-weight: 500; color: #0a0a0a;">Call</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 52px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fafafa; border: 1px solid #eaeaea; display: flex; align-items: center; justify-content: center; color: #666666;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M6 21V9l6-5 6 5v12"></path><path d="M10 21v-5h4v5"></path></svg>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px;">
+          <div style="font-size: 14px; font-weight: 500;">Owner</div>
+          <div style="font-size: 12px; color: #8f8f8f;">WhatsApp</div>
+        </div>
+        <div style="display: flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid #eaeaea; border-radius: 6px; font-size: 13px; font-weight: 500; color: #0a0a0a;">Message</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
