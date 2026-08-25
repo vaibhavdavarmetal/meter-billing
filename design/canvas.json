@@ -1,0 +1,24 @@
+{
+  "pages": [
+    { "id": "tenant", "name": "Tenant app" },
+    { "id": "admin", "name": "Owner console" },
+    { "id": "foundations", "name": "Foundations" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",            "page": "tenant", "title": "Home",          "x": 0,    "y": 0, "w": 390,  "h": 844 },
+    { "file": "TenantCapture.dc.html",   "page": "tenant", "title": "Photo taken",   "x": 480,  "y": 0, "w": 390,  "h": 844 },
+    { "file": "TenantConfirm.dc.html",   "page": "tenant", "title": "Confirm",       "x": 960,  "y": 0, "w": 390,  "h": 844 },
+    { "file": "TenantSubmitted.dc.html", "page": "tenant", "title": "Submitted",     "x": 1440, "y": 0, "w": 390,  "h": 844 },
+    { "file": "AdminSignIn.dc.html",     "page": "admin",  "title": "Sign in",       "x": 0,    "y": 0, "w": 1440, "h": 900 },
+    { "file": "AdminBilling.dc.html",    "page": "admin",  "title": "Billing",       "x": 1560, "y": 0, "w": 1440, "h": 900 },
+    { "file": "AdminTenants.dc.html",    "page": "admin",  "title": "Tenants",       "x": 3120, "y": 0, "w": 1440, "h": 900 },
+    { "file": "AdminMobile.dc.html",     "page": "admin",  "title": "Billing on a phone", "x": 4680, "y": 0, "w": 390, "h": 844 },
+    { "file": "Foundations.dc.html",     "page": "foundations", "title": "Foundations", "x": 0, "y": 0, "w": 1200, "h": 1100 }
+  ],
+  "annotations": [
+    { "id": "tenant-flow", "page": "tenant", "x": 0, "y": -150, "w": 700, "text": "The whole tenant job, left to right: open the link, photograph the meter, check the number, done.\nSubmission is still one-way — the confirm sheet is where that gets said plainly." },
+    { "id": "admin-note", "page": "admin", "x": 0, "y": -150, "w": 700, "text": "Dark by default, like the console today. Desktop is the working surface; the phone artboard on the right is the same screen for approving a bill on the move." },
+    { "id": "data-note", "page": "foundations", "x": 0, "y": -150, "w": 620, "text": "Properties, tenant names, slugs and the ₹9/unit rate come from lib/config.js. Readings, amounts and contact names are sample data." }
+  ],
+  "launch": { "view": "canvas", "page": "tenant" }
+}

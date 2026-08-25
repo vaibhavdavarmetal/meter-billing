@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #6aa8ff; text-decoration: none; }
+    a:hover { color: #8fbfff; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0a0a0a; color: #ededed; overflow: hidden; display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #262626;">
+    <div style="width: 28px; height: 28px; border-radius: 7px; background: #ffffff; display: flex; align-items: center; justify-content: center;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg>
+    </div>
+    <div style="flex-grow: 1; font-size: 15px; font-weight: 600; letter-spacing: -0.014em;">Billing</div>
+    <div style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border: 1px solid #262626; border-radius: 6px; background: #111111; font-size: 12px; font-weight: 500; color: #ededed;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M4 20h16"></path></svg>
+      CSV
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 16px;">
+    <div style="display: flex; gap: 4px; padding: 4px; border: 1px solid #262626; border-radius: 8px; background: #111111;">
+      <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; background: #1c1c1c; color: #ededed; font-size: 13px; font-weight: 500;">Billing</div><div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; color: #737373; font-size: 13px; font-weight: 500;">Tenants</div><div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; color: #737373; font-size: 13px; font-weight: 500;">House help</div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 6px; border: 1px solid #262626; border-radius: 8px; background: #111111;">
+      <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #a1a1a1;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"></path></svg>
+      </div>
+      <div style="font-size: 14px; font-weight: 500;">August 2026</div>
+      <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #a1a1a1;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"></path></svg>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: stretch; gap: 8px;">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid #262626; border-radius: 10px; background: #111111;">
+        <span style="font-size: 11px; color: #737373;">Billed</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 16px; font-weight: 500; letter-spacing: -0.02em;">₹12,954</span>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid #262626; border-radius: 10px; background: #111111;">
+        <span style="font-size: 11px; color: #737373;">Collected</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 16px; font-weight: 500; letter-spacing: -0.02em; color: #4cc38a;">₹3,141</span>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid #262626; border-radius: 10px; background: #111111;">
+        <span style="font-size: 11px; color: #737373;">Due</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 16px; font-weight: 500; letter-spacing: -0.02em; color: #e5a13a;">₹9,813</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; padding-top: 2px;">
+      <div style="font-size: 12px; font-weight: 500; color: #737373;">Sector 57</div>
+      <div style="flex-grow: 1; height: 1px; background: #1f1f1f;"></div>
+    </div>
+
+    <div style="border: 1px solid #262626; border-radius: 12px; background: #111111; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <div style="font-size: 15px; font-weight: 600; color: #ededed; letter-spacing: -0.011em;">First Floor</div>
+          <div style="font-size: 12px; color: #737373;">home-first</div>
+        </div>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; background: #0d1726; border: 1px solid #1e3252; color: #6aa8ff; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #6aa8ff;"></span>Approved</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #1f1f1f; border-radius: 8px; background: #0d0d0d;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #737373;">Previous</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #a1a1a1;">8,412</span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#525252" stroke-width="2" stroke-linecap="round" style="margin-top: 12px;"><path d="M5 12h13"></path><path d="m12 6 6 6-6 6"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #737373;">Current</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #ededed;">8,554</span>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
+          <span style="font-size: 11px; color: #737373;">Units</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #6aa8ff;">142</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+        <div style="font-size: 12px; color: #737373; line-height: 1.5;">Electricity ₹1,278 · Rent ₹3,000<br>Water ₹200 · Credit −₹166</div>
+        <div style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.025em; color: #ededed;">₹4,312</div>
+      </div>
+      <div style="display: flex; align-items: stretch; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 14px; border: 1px solid #262626; border-radius: 8px; background: #161616; font-size: 14px; font-weight: 500; color: #ededed; white-space: nowrap;">Edit</div>
+        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 7px; height: 44px; border-radius: 8px; background: #ffffff; color: #0a0a0a; font-size: 14px; font-weight: 500;">Send on WhatsApp</div>
+      </div>
+    </div>
+    <div style="border: 1px solid #433310; border-radius: 12px; background: #111111; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <div style="font-size: 15px; font-weight: 600; color: #ededed; letter-spacing: -0.011em;">Second Floor</div>
+          <div style="font-size: 12px; color: #737373;">home-second</div>
+        </div>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; background: #211803; border: 1px solid #433310; color: #e5a13a; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #e5a13a;"></span>Needs check</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #1f1f1f; border-radius: 8px; background: #0d0d0d;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #737373;">Previous</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #a1a1a1;">3,120</span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#525252" stroke-width="2" stroke-linecap="round" style="margin-top: 12px;"><path d="M5 12h13"></path><path d="m12 6 6 6-6 6"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #737373;">Current</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #ededed;">3,268</span>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
+          <span style="font-size: 11px; color: #737373;">Units</span>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; color: #6aa8ff;">148</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+        <div style="font-size: 12px; color: #737373; line-height: 1.5;">Typed number differs from the photo</div>
+        <div style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.025em; color: #ededed;">₹1,332</div>
+      </div>
+      <div style="display: flex; align-items: stretch; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 14px; border: 1px solid #262626; border-radius: 8px; background: #161616; font-size: 14px; font-weight: 500; color: #ededed; white-space: nowrap;">Edit</div>
+        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 7px; height: 44px; border-radius: 8px; background: #ffffff; color: #0a0a0a; font-size: 14px; font-weight: 500;">Review photo</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
