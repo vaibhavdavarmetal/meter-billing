@@ -8,6 +8,27 @@ function billingMonthLabel() {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// ── theme tokens ─────────────────────────────────────────────
+const DARK = {
+  "--page": "#0a0a0a", "--card": "#111111", "--elev": "#161616", "--field": "#0d0d0d",
+  "--line": "#262626", "--hair": "#1f1f1f",
+  "--fg": "#ededed", "--sec": "#a1a1a1", "--muted": "#737373",
+  "--accent": "#6aa8ff", "--accent-weak": "#0d1220", "--accent-line": "#3d5680",
+  "--good": "#4cc38a", "--good-bg": "#0e1f16", "--good-line": "#1d4030",
+  "--warn": "#e5a13a", "--warn-bg": "#211803", "--warn-line": "#433310", "--warn-fg": "#e0b072",
+  "--primary-bg": "#ffffff", "--primary-fg": "#0a0a0a",
+};
+const LIGHT = {
+  "--page": "#fafafa", "--card": "#ffffff", "--elev": "#f6f6f6", "--field": "#fafafa",
+  "--line": "#eaeaea", "--hair": "#f2f2f2",
+  "--fg": "#0a0a0a", "--sec": "#666666", "--muted": "#8f8f8f",
+  "--accent": "#0068d6", "--accent-weak": "#f4f9ff", "--accent-line": "#d6e6fb",
+  "--good": "#0f7b34", "--good-bg": "#edf7f0", "--good-line": "#c6e5cf",
+  "--warn": "#b45309", "--warn-bg": "#fff8eb", "--warn-line": "#f5e0b3", "--warn-fg": "#92400e",
+  "--primary-bg": "#0a0a0a", "--primary-fg": "#ffffff",
+};
+const MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+
 function UsageChart({ data }) {
   if (!data || data.length === 0) return null;
   const w = 300, h = 156, padL = 30, padB = 38, padT = 10, padR = 10;
@@ -20,23 +41,31 @@ function UsageChart({ data }) {
   const y = (u) => padT + ih - (u / max) * ih;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Your electricity units used per month">
-      <line x1={padL} y1={padT + ih} x2={w - padR} y2={padT + ih} stroke="#e7e0d4" strokeWidth="1" />
-      <text x={padL - 6} y={y(max)} fontSize="9" fill="#8a857a" textAnchor="end" dominantBaseline="middle">{Math.round(max)}</text>
-      <text x={padL - 6} y={padT + ih} fontSize="9" fill="#8a857a" textAnchor="end" dominantBaseline="middle">0</text>
+      <line x1={padL} y1={padT + ih} x2={w - padR} y2={padT + ih} stroke="var(--line)" strokeWidth="1" />
+      <text x={padL - 6} y={y(max)} fontSize="9" fill="var(--muted)" textAnchor="end" dominantBaseline="middle" fontFamily={MONO}>{Math.round(max)}</text>
+      <text x={padL - 6} y={padT + ih} fontSize="9" fill="var(--muted)" textAnchor="end" dominantBaseline="middle" fontFamily={MONO}>0</text>
       {data.map((d, i) => {
         const cx = padL + slot * i + slot / 2;
         const bh = (d.units / max) * ih;
         return (
           <g key={i}>
-            <rect x={cx - barW / 2} y={padT + ih - bh} width={barW} height={bh} rx="3" fill="#3b6478" />
-            <text x={cx} y={padT + ih - bh - 4} fontSize="8" fill="#5a6b74" textAnchor="middle">{Math.round(d.units)}</text>
-            <text x={cx} y={h - 4} fontSize="7" fill="#8a857a" textAnchor="end" transform={`rotate(-35 ${cx} ${h - 4})`}>{d.label}</text>
+            <rect x={cx - barW / 2} y={padT + ih - bh} width={barW} height={bh} rx="4" fill="var(--accent)" />
+            <text x={cx} y={padT + ih - bh - 4} fontSize="8" fill="var(--sec)" textAnchor="middle" fontFamily={MONO}>{Math.round(d.units)}</text>
+            <text x={cx} y={h - 4} fontSize="7" fill="var(--muted)" textAnchor="end" transform={`rotate(-35 ${cx} ${h - 4})`}>{d.label}</text>
           </g>
         );
       })}
     </svg>
   );
 }
+
+// ── small inline icons ───────────────────────────────────────
+const IconMoon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>);
+const IconSun = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"></path></svg>);
+const IconHome = ({ stroke }) => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg>);
+const IconCamera = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>);
+const IconWhatsApp = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="#25d366"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.3-1.38a9.87 9.87 0 0 0 4.74 1.2h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7A9.82 9.82 0 0 0 12.04 2Zm0 18.03h-.01c-1.5 0-2.98-.4-4.27-1.17l-.3-.18-3.15.82.84-3.07-.2-.32a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23a8.2 8.2 0 0 1 8.23 8.24c0 4.54-3.69 8.24-8.22 8.24Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.71-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.14.16-.24.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.41-.56-.42h-.47c-.16 0-.43.06-.65.31-.22.24-.85.83-.85 2.03s.87 2.35.99 2.51c.12.16 1.72 2.62 4.16 3.67.58.25 1.03.4 1.39.51.58.19 1.11.16 1.53.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"></path></svg>);
+const IconPhone = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3h3l1.5 4.5-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4.5 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5a2 2 0 0 1 2-2Z"></path></svg>);
 
 function TenantForm() {
   const [slug, setSlug] = useState(null);
@@ -65,6 +94,13 @@ function TenantForm() {
   const [ownerWhatsapp, setOwnerWhatsapp] = useState(null);
   const [showChart, setShowChart] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [theme, setTheme] = useState("dark"); // dark by default
+
+  useEffect(() => {
+    try { const t = window.localStorage.getItem("tenant-theme"); if (t) setTheme(t); } catch {}
+  }, []);
+  const toggleTheme = () => { const t = theme === "dark" ? "light" : "dark"; setTheme(t); try { window.localStorage.setItem("tenant-theme", t); } catch {} };
+  const tv = theme === "dark" ? DARK : LIGHT;
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("t");
@@ -172,65 +208,90 @@ function TenantForm() {
     }
   };
 
-  // Skeleton loading — real labels shown, only the data shimmers (feels oriented, no empty flash)
+  // Shared page chrome (theme vars + global styles + header bar).
+  const Shell = ({ children, bar = true }) => (
+    <div style={{ ...tv, minHeight: "100vh", background: "var(--page)", color: "var(--fg)" }}>
+      <style>{`
+        .tenant-wrap ::placeholder { color: var(--muted); opacity: .7; }
+        .tenant-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+        .tenant-wrap button:active { transform: translateY(1px); }
+        .tenant-wrap a, .tenant-wrap button { -webkit-tap-highlight-color: transparent; }
+        @keyframes shimmer { 0% { background-position: 100% 0 } 100% { background-position: -100% 0 } }
+        @keyframes spin { to { transform: rotate(360deg) } }
+      `}</style>
+      <div className="tenant-wrap">
+        {bar && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", background: "var(--page)", borderBottom: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, background: "var(--primary-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <IconHome stroke="var(--primary-fg)" />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.011em", color: "var(--fg)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tenantName || "Your home"}</div>
+                {propertyName && <div style={{ fontSize: 12, color: "var(--muted)" }}>{propertyName}</div>}
+              </div>
+            </div>
+            <button onClick={toggleTheme} aria-label="Toggle light or dark theme" style={{ display: "flex", alignItems: "center", gap: 6, height: 28, padding: "0 10px", border: "1px solid var(--line)", borderRadius: 999, background: "var(--card)", color: "var(--sec)", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              {theme === "dark" ? <><IconSun /> Light</> : <><IconMoon /> Dark</>}
+            </button>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+
+  // Skeleton loading — real labels shown, only the data shimmers.
   if (!loaded) {
     const Sk = ({ w, h, mt }) => (
-      <div style={{ width: w, height: h || 14, marginTop: mt || 0, borderRadius: 6, background: "linear-gradient(90deg,#eee7db 25%,#f3eee4 37%,#eee7db 63%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
+      <div style={{ width: w, height: h || 14, marginTop: mt || 0, borderRadius: 6, background: "linear-gradient(90deg, var(--elev) 25%, var(--hair) 37%, var(--elev) 63%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
     );
     return (
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px calc(90px + env(safe-area-inset-bottom))", minHeight: "100vh", background: "#f6f2ea" }}>
-        <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
-        <div style={{ textAlign: "center", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div style={eyebrow}>Your home</div>
-          <h1 style={{ ...h1, margin: "2px 0 0" }}>{tenantName || <Sk w={160} h={22} />}</h1>
-          <Sk w={90} h={12} />
+      <Shell>
+        <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px" }}>
+          <div style={dashCard}><div style={cardLabel}>Total due</div><Sk w={140} h={28} mt={12} /><Sk w={110} h={11} mt={10} /></div>
+          <div style={dashCard}><div style={cardLabel}>Meter reading · {billingMonthLabel()}</div><Sk w={130} h={14} mt={12} /><Sk w="100%" h={48} mt={16} /></div>
+          <div style={{ ...dashCard, marginBottom: 0 }}><div style={cardLabel}>Maintenance &amp; help</div>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--elev)" }} />
+                <div style={{ flex: 1 }}><Sk w="55%" h={13} /><Sk w="35%" h={10} mt={6} /></div>
+              </div>
+            ))}
+          </div>
         </div>
-        {/* dues */}
-        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14 }}>
-          <div style={cardLabel}>Account</div>
-          <Sk w={140} h={28} mt={12} />
-          <Sk w={110} h={11} mt={10} />
-        </div>
-        {/* meter */}
-        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14 }}>
-          <div style={cardLabel}>Meter reading · {billingMonthLabel()}</div>
-          <Sk w={130} h={14} mt={12} />
-          <Sk w="100%" h={52} mt={16} />
-        </div>
-        {/* contacts */}
-        <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20 }}>
-          <div style={cardLabel}>Maintenance & help</div>
-          {[0, 1, 2].map((i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#eee7db" }} />
-              <div style={{ flex: 1 }}><Sk w="55%" h={13} /><Sk w="35%" h={10} mt={6} /></div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </Shell>
     );
   }
 
   if (!slug) {
     return (
-      <Card>
-        <h1 style={h1}>Meter Readings</h1>
-        <p style={{ color: "#8a8375" }}>
-          Open your personal link to submit your reading. It looks like
-          <br /><code>?t=your-name</code> at the end of the address.
-        </p>
-      </Card>
+      <Shell bar={false}>
+        <div style={{ maxWidth: 440, margin: "0 auto", padding: "32px 20px" }}>
+          <div style={cardCentered}>
+            <h1 style={h1}>Meter Readings</h1>
+            <p style={{ color: "var(--sec)", lineHeight: 1.55 }}>
+              Open your personal link to submit your reading. It looks like
+              <br /><code style={{ fontFamily: MONO }}>?t=your-name</code> at the end of the address.
+            </p>
+          </div>
+        </div>
+      </Shell>
     );
   }
 
   if (stage === "inactive") {
     return (
-      <Card>
-        <h1 style={h1}>Link no longer active</h1>
-        <p style={{ color: "#8a8375" }}>
-          This meter reading link is no longer active. If you think this is a mistake, please contact the owner.
-        </p>
-      </Card>
+      <Shell>
+        <div style={{ maxWidth: 440, margin: "0 auto", padding: "16px" }}>
+          <div style={cardCentered}>
+            <h1 style={h1}>Link no longer active</h1>
+            <p style={{ color: "var(--sec)", lineHeight: 1.55 }}>
+              This meter reading link is no longer active. If you think this is a mistake, please contact the owner.
+            </p>
+          </div>
+        </div>
+      </Shell>
     );
   }
 
@@ -239,38 +300,36 @@ function TenantForm() {
     if (!dues) {
       const carried = reminder ? (reminder.carried || 0) : 0;
       return (
-        <DashCard>
+        <div style={dashCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={cardLabel}>Account</div>
-            <span style={{ background: "#f7ede4", color: "#b06a3c", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>Rent due</span>
+            <span style={pill("warn")}>Rent due</span>
           </div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#232826", marginTop: 8 }}>Rent for {billingMonthLabel()} is due</div>
+          <div style={{ fontFamily: MONO, fontSize: 22, color: "var(--fg)", marginTop: 8, letterSpacing: "-0.02em" }}>Rent for {billingMonthLabel()} is due</div>
           {carried !== 0 && (
-            <div style={{ fontSize: 13, marginTop: 8, padding: "8px 10px", borderRadius: 8, background: carried < 0 ? "#eef3f5" : "#f7ede4", color: carried < 0 ? "#3b6478" : "#b06a3c" }}>
+            <div style={{ fontSize: 13, marginTop: 8, padding: "8px 10px", borderRadius: 8, background: carried < 0 ? "var(--accent-weak)" : "var(--warn-bg)", color: carried < 0 ? "var(--accent)" : "var(--warn)" }}>
               {carried < 0
                 ? `You have ₹${Math.abs(carried).toLocaleString("en-IN")} credit from last month — it'll be adjusted in this bill.`
                 : `₹${carried.toLocaleString("en-IN")} was carried from last month — it'll be added to this bill.`}
             </div>
           )}
-          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 10 }}>Submit your meter reading below to get your final bill from the owner.</div>
-        </DashCard>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 10 }}>Submit your meter reading below to get your final bill from the owner.</div>
+        </div>
       );
     }
     const s = dues.status;
-    const pill = s === "paid" ? { bg: "#e6f0ea", fg: "#3f7a52", t: "Paid" }
-      : { bg: "#f7ede4", fg: "#b06a3c", t: "Pending" };
-    const headline = s === "paid" ? "All settled"
-      : `₹${(dues.outstanding).toLocaleString("en-IN")}`;
+    const isPaid = s === "paid";
+    const headline = isPaid ? "All settled" : `₹${(dues.outstanding).toLocaleString("en-IN")}`;
     const adj = dues.adjustment || 0;
     return (
-      <DashCard>
+      <div style={dashCard}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={cardLabel}>{s === "pending" ? "Total due" : "Account"}</div>
-          <span style={{ background: pill.bg, color: pill.fg, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>{pill.t}</span>
+          <span style={pill(isPaid ? "good" : "warn")}>{isPaid ? "Paid" : "Pending"}</span>
         </div>
-        <div style={{ fontFamily: "Georgia, serif", fontSize: 30, color: "#232826", marginTop: 6 }}>{headline}</div>
-        {dues.carryIn ? <div style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
-        <div style={{ fontSize: 12, color: "#8a857a", marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontFamily: MONO, fontSize: 30, color: "var(--fg)", marginTop: 6, letterSpacing: "-0.03em" }}>{headline}</div>
+        {dues.carryIn ? <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>{dues.carryIn > 0 ? `Includes ₹${dues.carryIn.toLocaleString("en-IN")} carried from before` : `Includes ₹${Math.abs(dues.carryIn).toLocaleString("en-IN")} credit`}</div> : null}
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
           <div>Bill for {billingMonthLabel()}</div>
           <div>
             {`Electricity ₹${(dues.electricity || 0).toLocaleString("en-IN")} + Rent ₹${(dues.rent || 0).toLocaleString("en-IN")}`}
@@ -281,19 +340,18 @@ function TenantForm() {
           {dues.paidAmount != null && <div>Paid: ₹{dues.paidAmount.toLocaleString("en-IN")}</div>}
         </div>
         {adj !== 0 && (
-          <div style={{ fontSize: 13, marginTop: 10, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "#eef3f5" : "#f7ede4", color: adj < 0 ? "#3b6478" : "#b06a3c" }}>
+          <div style={{ fontSize: 13, marginTop: 10, padding: "8px 10px", borderRadius: 8, background: adj < 0 ? "var(--accent-weak)" : "var(--warn-bg)", color: adj < 0 ? "var(--accent)" : "var(--warn)" }}>
             {adj < 0
               ? `You paid ₹${Math.abs(adj).toLocaleString("en-IN")} extra — this will be adjusted (credited) in your next bill.`
               : `You paid ₹${adj.toLocaleString("en-IN")} less — this will be added to your next bill.`}
           </div>
         )}
-      </DashCard>
+      </div>
     );
   };
 
   const ContactsCard = () => {
     if (!contacts || contacts.length === 0) return null;
-    // Group contacts by their role/category label, preserving first-seen order.
     const groups = [];
     const byLabel = {};
     contacts.forEach((c) => {
@@ -302,25 +360,25 @@ function TenantForm() {
       byLabel[key].push(c);
     });
     return (
-      <DashCard>
-        <div style={cardLabel}>Maintenance & help</div>
+      <div style={dashCard}>
+        <div style={cardLabel}>Maintenance &amp; help</div>
         <div style={{ marginTop: 6 }}>
           {groups.map((label, gi) => (
             <div key={label} style={{ marginTop: gi ? 16 : 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#3b6478", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", marginBottom: 2 }}>{label}</div>
               {byLabel[label].map((c, i) => (
-                <a key={i} href={`tel:${c.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i ? "1px solid #f0ebe1" : "none", textDecoration: "none", color: "#232826" }}>
-                  <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#eef3f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📞</span>
+                <a key={i} href={`tel:${c.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i ? "1px solid var(--hair)" : "none", textDecoration: "none", color: "var(--fg)" }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--elev)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--sec)" }}><IconPhone /></span>
                   <span style={{ flex: 1, textAlign: "left" }}>
-                    <span style={{ display: "block", fontWeight: 600, fontSize: 15 }}>{c.name}</span>
+                    <span style={{ display: "block", fontWeight: 500, fontSize: 14 }}>{c.name}</span>
                   </span>
-                  <span style={{ color: "#3b6478", fontWeight: 600, fontSize: 14 }}>Call</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", height: 32, padding: "0 12px", border: "1px solid var(--line)", borderRadius: 6, color: "var(--fg)", fontWeight: 500, fontSize: 13 }}>Call</span>
                 </a>
               ))}
             </div>
           ))}
         </div>
-      </DashCard>
+      </div>
     );
   };
 
@@ -328,139 +386,134 @@ function TenantForm() {
     // Baseline submitted, awaiting owner verification
     if (startSubmitted && stage !== "done") {
       return (
-        <DashCard>
+        <div style={dashCard}>
           <div style={cardLabel}>Starting meter reading</div>
-          <div style={{ fontSize: 40, margin: "6px 0" }}>⏳</div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#232826" }}>Submitted — awaiting owner confirmation</div>
-          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 6 }}>Thanks! Your starting meter reading has been sent to the owner to verify. Once confirmed, you'll submit your monthly readings here.</div>
-        </DashCard>
+          <div style={{ fontFamily: MONO, fontSize: 20, color: "var(--fg)", marginTop: 10 }}>Submitted — awaiting owner confirmation</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>Thanks! Your starting meter reading has been sent to the owner to verify. Once confirmed, you'll submit your monthly readings here.</div>
+        </div>
       );
     }
-    // Settling-in: baseline confirmed, still in move-in month → show as submitted/locked.
+    // Settling-in: baseline confirmed, still in move-in month.
     if (settlingIn) {
       return (
-        <DashCard>
+        <div style={dashCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={cardLabel}>Starting meter reading</div>
-            <span style={{ background: "#e6f0ea", color: "#3f7a52", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>✓ Submitted</span>
+            <span style={pill("good")}>Submitted</span>
           </div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#232826", marginTop: 8 }}>{previousReading != null ? previousReading : "—"}</div>
-          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2, lineHeight: 1.5 }}>Your starting reading is confirmed. Your first monthly reading will open here on the 1st.</div>
-        </DashCard>
+          <div style={{ fontFamily: MONO, fontSize: 26, color: "var(--fg)", marginTop: 8, letterSpacing: "-0.02em" }}>{previousReading != null ? previousReading : "—"}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2, lineHeight: 1.5 }}>Your starting reading is confirmed. Your first monthly reading will open here on the 1st.</div>
+        </div>
       );
     }
     // Submitted / locked state
     if (stage === "locked" || stage === "done") {
       return (
-        <DashCard>
+        <div style={dashCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={cardLabel}>{awaitingStart ? "Starting meter reading" : `Meter reading · ${billingMonthLabel()}`}</div>
-            <span style={{ background: "#e6f0ea", color: "#3f7a52", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>✓ Submitted</span>
+            <span style={pill("good")}>Submitted</span>
           </div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#232826", marginTop: 8 }}>
+          <div style={{ fontFamily: MONO, fontSize: 34, color: "var(--fg)", marginTop: 8, letterSpacing: "-0.03em", lineHeight: 1 }}>
             {stage === "done" ? reading : (lockedInfo && lockedInfo.reading != null ? lockedInfo.reading : "—")}
           </div>
-          <div style={{ fontSize: 13, color: "#8a857a", marginTop: 2 }}>{awaitingStart ? "Your starting reading is saved. From next month you'll submit monthly readings here." : "Your submitted reading. Contact the owner if it needs changing."}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 8 }}>{awaitingStart ? "Your starting reading is saved. From next month you'll submit monthly readings here." : "Your submitted reading. Contact the owner if it needs changing."}</div>
           {stage === "done" && ownerWhatsapp && (
             <a
               href={`https://wa.me/${ownerWhatsapp}?text=${encodeURIComponent(`Hi, I've submitted my meter reading (${reading}) for ${billingMonthLabel()}${propertyName ? ` at ${propertyName}` : ""}${tenantName ? ` — ${tenantName}` : ""}. Please verify. Thank you.`)}`}
               target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "12px", borderRadius: 12, background: "#25D366", color: "#fff", fontWeight: 600, fontSize: 15, textDecoration: "none" }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "12px", borderRadius: 8, background: "var(--card)", border: "1px solid var(--line)", color: "var(--fg)", fontWeight: 500, fontSize: 14, textDecoration: "none" }}
             >
-              Notify owner on WhatsApp
+              <IconWhatsApp /> Notify owner on WhatsApp
             </a>
           )}
           {history.length > 0 && (
-            <div style={{ marginTop: 14, borderTop: "1px solid #f0ebe1", paddingTop: 12 }}>
-              <button onClick={() => setShowChart((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, color: "#3b6478", fontWeight: 600, fontSize: 14 }}>
+            <div style={{ marginTop: 14, borderTop: "1px solid var(--hair)", paddingTop: 12 }}>
+              <button onClick={() => setShowChart((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, color: "var(--accent)", fontWeight: 500, fontSize: 14 }}>
                 View detailed units info
-                <span style={{ transform: showChart ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+                <span style={{ display: "inline-flex", transform: showChart ? "rotate(180deg)" : "none", transition: "transform .15s", color: "var(--accent)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+                </span>
               </button>
               {showChart && (
                 <div style={{ marginTop: 12 }}>
                   <UsageChart data={history} />
-                  <p style={{ fontSize: 12, color: "#8a857a", marginTop: 6 }}>Units used each billing cycle (this cycle appears once your bill is finalised).</p>
+                  <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Units used each billing cycle (this cycle appears once your bill is finalised).</p>
                 </div>
               )}
             </div>
           )}
-        </DashCard>
+        </div>
       );
     }
     // Unlocked / entry state
     return (
-      <DashCard>
+      <div style={dashCard}>
         <div style={cardLabel}>{awaitingStart ? "Welcome — starting meter reading" : `Meter reading · ${billingMonthLabel()}`}</div>
         {awaitingStart ? (
-          <div style={{ fontSize: 14, color: "#232826", margin: "8px 0 14px", lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: "var(--fg)", margin: "8px 0 14px", lineHeight: 1.5 }}>
             Welcome to your new home! To get started, please take a photo of your electricity meter <strong>today (your move-in day)</strong> and submit the reading. This becomes your starting point — you'll only be billed for what you use from here on.
           </div>
         ) : previousReading != null && (
-          <div style={{ fontSize: 14, color: "#232826", margin: "8px 0 14px" }}>
-            Previous reading: <strong style={{ color: "#3b6478" }}>{previousReading}</strong>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--field)", margin: "12px 0" }}>
+            <span style={{ fontSize: 13, color: "var(--sec)" }}>Previous reading</span>
+            <span style={{ fontFamily: MONO, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--fg)" }}>{previousReading}</span>
           </div>
         )}
 
         <label style={bigBtn}>
-          📷 {photo ? "Retake photo" : (awaitingStart ? "Take a photo of your meter" : "Take a photo of your meter")}
+          <IconCamera /> {photo ? "Retake photo" : "Take a photo of your meter"}
           <input type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
         </label>
 
-        {preview && <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 12, margin: "14px 0", border: "1px solid #e4ddd0" }} />}
+        {preview && <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 10, margin: "14px 0", border: "1px solid var(--line)" }} />}
 
         {stage === "confirm" && (
           <div>
-            <p style={{ color: "#3b5b6b", fontWeight: 600 }}>Please type the number shown on your meter.</p>
+            <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Please type the number shown on your meter.</p>
             <label style={fieldLabel}>Meter number</label>
             <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 4521" />
-            {err && <p style={{ color: "#c0392b", fontSize: 14 }}>{err}</p>}
+            {err && <p style={{ color: "#e5484d", fontSize: 14 }}>{err}</p>}
             <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
+              {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid color-mix(in srgb, var(--primary-fg) 40%, transparent)", borderTopColor: "var(--primary-fg)", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
             </button>
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
         )}
-      </DashCard>
+      </div>
     );
   };
 
   return (
-    <div style={{ maxWidth: 460, margin: "0 auto", padding: "24px 16px calc(90px + env(safe-area-inset-bottom))", background: "#f6f2ea" }}>
-      <div style={{ textAlign: "center", marginBottom: 4 }}>
-        <div style={eyebrow}>Your home</div>
-        <h1 style={{ ...h1, margin: "4px 0 2px" }}>{tenantName}</h1>
-        {propertyName && <div style={{ fontSize: 13, color: "#8a857a", marginBottom: 16 }}>{propertyName}</div>}
+    <Shell>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 16px calc(24px + env(safe-area-inset-bottom))" }}>
+        {settlingIn ? (
+          <>{MeterCard()}</>
+        ) : (
+          <>
+            {!(awaitingStart || startSubmitted) && DuesCard()}
+            {MeterCard()}
+          </>
+        )}
+        {ContactsCard()}
       </div>
 
-      {settlingIn ? (
-        <>
-          {MeterCard()}
-        </>
-      ) : (
-        <>
-          {!(awaitingStart || startSubmitted) && DuesCard()}
-          {MeterCard()}
-        </>
-      )}
-      {ContactsCard()}
-
       {showConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(31,36,33,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 22, maxWidth: 340, width: "100%", textAlign: "left" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 10px", fontFamily: "Georgia, serif" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
-            <p style={{ fontSize: 14, color: "#8a8375", margin: "0 0 18px", lineHeight: 1.5 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: 22, maxWidth: 340, width: "100%", textAlign: "left", color: "var(--fg)" }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
+            <p style={{ fontSize: 14, color: "var(--sec)", margin: "0 0 18px", lineHeight: 1.5 }}>
               {awaitingStart
                 ? <>This will be saved as your <strong>starting meter reading</strong>. Please make sure it matches your meter today.</>
                 : <>Once submitted, you <strong>cannot submit again</strong> for {billingMonthLabel()} unless the owner unlocks it. Please make sure your reading is correct.</>}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setShowConfirm(false)} style={{ ...submitBtn, background: "#fff", color: "#3b5b6b", border: "1px solid #e4ddd0", marginTop: 0 }}>Cancel</button>
+              <button onClick={() => setShowConfirm(false)} style={{ ...submitBtn, background: "var(--card)", color: "var(--fg)", border: "1px solid var(--line)", marginTop: 0 }}>Cancel</button>
               <button onClick={doSubmit} style={{ ...submitBtn, marginTop: 0 }}>Submit</button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Shell>
   );
 }
 
@@ -468,20 +521,13 @@ export default function Page() {
   return <Suspense><TenantForm /></Suspense>;
 }
 
-// ── inline styles ─────────────────────────────────────────────
-const Card = ({ children }) => (
-  <div style={{ maxWidth: 440, margin: "0 auto", padding: "32px 20px", minHeight: "100vh", background: "#f6f2ea" }}>
-    <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 20, padding: 26, textAlign: "center", boxShadow: "0 4px 16px rgba(60,50,30,0.06), 0 1px 3px rgba(60,50,30,0.04)" }}>{children}</div>
-  </div>
-);
-const DashCard = ({ children }) => (
-  <div style={{ background: "#fff", border: "1px solid #e7e0d4", borderRadius: 18, padding: 20, marginBottom: 14, textAlign: "left", boxShadow: "0 2px 10px rgba(60,50,30,0.05)" }}>{children}</div>
-);
-const cardLabel = { fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#8a857a", fontWeight: 700 };
-const eyebrow = { fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#b06a3c", fontWeight: 600 };
-const h1 = { fontFamily: "Georgia, serif", fontSize: 27, margin: "6px 0 8px", color: "#232826", fontWeight: 600 };
-const monthBadge = { display: "inline-block", background: "#eef3f5", color: "#3b6478", fontSize: 13, fontWeight: 600, borderRadius: 20, padding: "6px 15px", margin: "2px auto 20px" };
-const bigBtn = { display: "block", textAlign: "center", background: "#3b6478", color: "#fff", padding: "16px", borderRadius: 13, fontWeight: 600, cursor: "pointer", fontSize: 16, boxShadow: "0 2px 6px rgba(59,100,120,0.25)" };
-const fieldLabel = { display: "block", fontSize: 11, color: "#8a857a", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6, margin: "16px 0 6px" };
-const input = { width: "100%", boxSizing: "border-box", border: "1.5px solid #e7e0d4", borderRadius: 12, padding: "15px", fontSize: 22, fontWeight: 700, background: "#f6f2ea", textAlign: "center", color: "#232826" };
-const submitBtn = { width: "100%", marginTop: 18, background: "#3f7a52", color: "#fff", border: "none", borderRadius: 13, padding: "16px", fontSize: 16, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 6px rgba(63,122,82,0.25)" };
+// ── inline styles (CSS-variable driven) ──────────────────────
+const dashCard = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: 16, marginBottom: 12, textAlign: "left" };
+const cardCentered = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: 24, textAlign: "center" };
+const cardLabel = { fontSize: 12, color: "var(--sec)", fontWeight: 500 };
+const h1 = { fontSize: 20, margin: "0 0 8px", color: "var(--fg)", fontWeight: 600, letterSpacing: "-0.018em" };
+const bigBtn = { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center", background: "var(--primary-bg)", color: "var(--primary-fg)", padding: "14px", borderRadius: 8, fontWeight: 500, cursor: "pointer", fontSize: 15 };
+const fieldLabel = { display: "block", fontSize: 12, color: "var(--sec)", fontWeight: 500, margin: "16px 0 6px" };
+const input = { width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "14px", fontSize: 22, fontWeight: 500, background: "var(--field)", textAlign: "center", color: "var(--fg)", fontFamily: MONO, letterSpacing: "0.02em" };
+const submitBtn = { width: "100%", marginTop: 16, background: "var(--primary-bg)", color: "var(--primary-fg)", border: "none", borderRadius: 8, padding: "14px", fontSize: 15, fontWeight: 500, cursor: "pointer" };
+const pill = (kind) => ({ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: 999, fontSize: 11, fontWeight: 500, background: `var(--${kind}-bg)`, border: `1px solid var(--${kind}-line)`, color: `var(--${kind})` });
