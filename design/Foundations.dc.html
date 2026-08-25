@@ -1,0 +1,268 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0068d6; text-decoration: none; }
+    a:hover { color: #0055ab; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width: 1200px; height: 1100px; background: #fafafa; color: #0a0a0a; overflow: hidden; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+      <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.022em;">Foundations</div>
+      <div style="font-size: 13px; color: #666666;">One vocabulary for the tenant app and the owner console.</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border: 1px solid #eaeaea; border-radius: 6px; background: #ffffff; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #666666;">Geist</span>
+      <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border: 1px solid #eaeaea; border-radius: 6px; background: #ffffff; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #666666;">Geist Mono</span>
+    </div>
+  </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Surfaces · tenant app (light)</div>
+        <div style="font-size: 12px; color: #8f8f8f;">white cards on a near-white ground, 1px hairlines</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #ffffff; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Background</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#ffffff</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #fafafa; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Surface</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#fafafa</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #f2f2f2; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Hairline</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#f2f2f2</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #eaeaea; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Border</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#eaeaea</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #8f8f8f; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Text muted</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#8f8f8f</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #666666; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Text secondary</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#666666</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #0a0a0a; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Text primary</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#0a0a0a</div>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Surfaces · owner console (dark)</div>
+        <div style="font-size: 12px; color: #8f8f8f;">chosen for dark, not flipped from light</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #0a0a0a; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Background</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#0a0a0a</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #111111; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Card</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#111111</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #161616; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Elevated</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#161616</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #1f1f1f; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Hairline</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#1f1f1f</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #262626; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Border</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#262626</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #737373; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Text muted</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#737373</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #ededed; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Text primary</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#ededed</div>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Status</div>
+        <div style="font-size: 12px; color: #8f8f8f;">reserved — never reused as decoration</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #0068d6; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Accent · light</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#0068d6</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #6aa8ff; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Accent · dark</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#6aa8ff</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #0f7b34; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Paid · light</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#0f7b34</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #4cc38a; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Paid · dark</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#4cc38a</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #b45309; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Pending · light</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#b45309</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #e5a13a; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Pending · dark</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#e5a13a</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="height: 52px; border-radius: 8px; background: #c5221f; border: 1px solid #eaeaea;"></div>
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Danger</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f; margin-top: -3px;">#c5221f</div>
+        </div>
+      </div>
+    </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Type</div>
+        <div style="font-size: 12px; color: #8f8f8f;">figures always in Geist Mono, tabular and right-aligned</div>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 26px; font-weight: 600; letter-spacing: -0.025em; color: #0a0a0a;">Owner console</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 26 / 600 / -0.025em</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 16px; font-weight: 600; letter-spacing: -0.014em; color: #0a0a0a;">Billing</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 16 / 600 / -0.014em</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 14px; font-weight: 600; color: #0a0a0a;">First Floor</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 14 / 600</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 13px; color: #0a0a0a;">Readings for August 2026</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 13 / 400</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 12px; font-weight: 500; color: #666666;">Previous reading</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 12 / 500 · secondary</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-size: 12px; color: #8f8f8f;">Sent 3 August, 9:14 am</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist 11–12 / 400 · muted</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 30px; font-weight: 500; letter-spacing: -0.03em; color: #0a0a0a;">₹4,312</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist Mono 30 / 500 / -0.03em</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px solid #f2f2f2;">
+          <div style="width: 300px; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #0a0a0a;">8,412 → 8,554</div>
+          <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #8f8f8f;">Geist Mono 13 / 400 · all figures</div>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Controls</div>
+        <div style="font-size: 12px; color: #8f8f8f;">one primary action per screen</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 500; background: #0a0a0a; color: #ffffff;">Primary</div>
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 500; background: #ffffff; color: #0a0a0a; border: 1px solid #eaeaea;">Secondary</div>
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 500; background: transparent; color: #666666;">Ghost</div>
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 500; background: #fef2f2; color: #c5221f; border: 1px solid #f5cfcf;">Danger</div>
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 500; background: #0a0a0a; color: #ffffff; font-size: 15px;">On phone · 48px</div>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; gap: 12px;">
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-size: 12px; font-weight: 500; color: #666666;">Rest</label>
+            <div style="display: flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid #eaeaea; border-radius: 6px; background: #ffffff; font-size: 13px; color: #8f8f8f;">Placeholder</div>
+          </div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-size: 12px; font-weight: 500; color: #666666;">Focus</label>
+            <div style="display: flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid #0a0a0a; border-radius: 6px; background: #ffffff; box-shadow: 0 0 0 3px rgba(10,10,10,0.06); font-size: 13px; color: #0a0a0a;">8,554</div>
+          </div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-size: 12px; font-weight: 500; color: #666666;">Disabled</label>
+            <div style="display: flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid #eaeaea; border-radius: 6px; background: #fafafa; font-size: 13px; color: #b3b3b3;">8,412</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: #edf7f0; border: 1px solid #c6e5cf; color: #0f7b34; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #0f7b34;"></span>Paid</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: #f0f7ff; border: 1px solid #cfe1fa; color: #0068d6; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #0068d6;"></span>Approved</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: #fff8eb; border: 1px solid #f5e0b3; color: #b45309; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #b45309;"></span>Needs check</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: #fafafa; border: 1px solid #eaeaea; color: #666666; font-size: 11px; font-weight: 500;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #666666;"></span>No reading</span>
+          <span style="font-size: 12px; color: #8f8f8f; margin-left: 6px;">Status is never colour alone — always a dot plus a word.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea;">
+        <div style="font-size: 13px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.011em;">Geometry</div>
+        <div style="font-size: 12px; color: #8f8f8f;"></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+        <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 14px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Radii</div>
+          <div style="font-size: 12px; color: #8f8f8f; line-height: 1.55;">Controls 6 · Fields 6–8<br>Cards 12 · Sheets 16 · Pills 999</div>
+        </div>
+        <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 14px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Control heights</div>
+          <div style="font-size: 12px; color: #8f8f8f; line-height: 1.55;">Desktop 28 / 32 / 40<br>Phone 44 minimum, 48 primary</div>
+        </div>
+        <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 14px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Spacing</div>
+          <div style="font-size: 12px; color: #8f8f8f; line-height: 1.55;">Card padding 14–16<br>Stack gap 12 · Section gap 16–20</div>
+        </div>
+        <div style="border: 1px solid #eaeaea; border-radius: 12px; background: #ffffff; padding: 14px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #0a0a0a;">Borders</div>
+          <div style="font-size: 12px; color: #8f8f8f; line-height: 1.55;">1px hairlines, no shadows<br>Elevation only on sheets and modals</div>
+        </div>
+      </div>
+    </div>
+</div>
+</x-dc>
+</body>
+</html>

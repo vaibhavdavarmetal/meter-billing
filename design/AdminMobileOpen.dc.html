@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #6aa8ff; text-decoration: none; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 1180px; background: #0a0a0a; color: #ededed; overflow: hidden; display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #262626;">
+    <div style="width: 28px; height: 28px; border-radius: 7px; background: #ffffff; display: flex; align-items: center; justify-content: center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg></div>
+    <div style="flex-grow: 1; font-size: 15px; font-weight: 600; letter-spacing: -0.014em;">Billing</div>
+    <div style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border: 1px solid #262626; border-radius: 6px; background: #111111; font-size: 12px; font-weight: 500; color: #ededed;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M4 20h16"></path></svg>CSV</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 20px;">
+    <div style="display: flex; gap: 4px; padding: 4px; border: 1px solid #262626; border-radius: 8px; background: #111111;"><div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; background: #1c1c1c; color: #ededed; font-size: 13px; font-weight: 500;">Billing</div><div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; color: #737373; font-size: 13px; font-weight: 500;">Tenants</div><div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 32px; border-radius: 6px; color: #737373; font-size: 13px; font-weight: 500;">House help</div></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 6px; border: 1px solid #262626; border-radius: 8px; background: #111111;">
+      <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #a1a1a1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"></path></svg></div>
+      <div style="font-size: 14px; font-weight: 500;">August 2026</div>
+      <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #a1a1a1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"></path></svg></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; padding-top: 2px;"><div style="font-size: 12px; font-weight: 500; color: #737373;">Sector 57</div><div style="flex-grow: 1; height: 1px; background: #1f1f1f;"></div></div>
+
+    <div style="border: 1px solid #262626; border-radius: 12px; background: #111111; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><div style="font-size: 15px; font-weight: 600; color: #ededed; letter-spacing: -0.011em;">First Floor</div><div style="font-size: 12px; color: #737373;">8,412 → 8,554 · 142 units</div></div>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; background: #0d1726; border: 1px solid #1e3252; color: #6aa8ff; font-size: 11px; font-weight: 500; white-space: nowrap;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #6aa8ff;"></span>Approved</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 12px; color: #737373;">Electricity + Rent + Misc − Credit</span><span style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; font-weight: 500; letter-spacing: -0.02em; color: #ededed;">₹4,312</span></div>
+    </div>
+    <div style="border: 1px solid #433310; border-radius: 12px; background: #111111; overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid #1f1f1f; background: #131313;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><div style="font-size: 15px; font-weight: 600; color: #ededed; letter-spacing: -0.011em;">Second Floor</div><div style="font-size: 12px; color: #737373;">?t=home-second</div></div>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; background: #211803; border: 1px solid #433310; color: #e5a13a; font-size: 11px; font-weight: 500; white-space: nowrap;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #e5a13a;"></span>Needs check</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"></path></svg>
+      </div>
+
+      <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #1f1f1f; background: #1c1c1c;">
+          <svg viewBox="0 0 358 190" style="display: block; width: 100%; height: auto;" role="img" aria-label="Meter photo submitted by the tenant">
+            <rect width="358" height="190" fill="#26282b"></rect>
+            <rect x="46" y="24" width="266" height="142" rx="10" fill="#3a3d41"></rect>
+            <rect x="46" y="24" width="266" height="36" rx="10" fill="#45484d"></rect>
+            <rect x="70" y="78" width="218" height="54" rx="6" fill="#171a17"></rect>
+            <text x="179" y="115" text-anchor="middle" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="34" letter-spacing="6" fill="#8ce99a">03268</text>
+            <circle cx="286" cy="146" r="5" fill="#c0392b"></circle>
+          </svg>
+          <div style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 6px; background: rgba(10,10,10,0.72); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-size: 12px; font-weight: 500;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>Full size
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid #433310; border-radius: 8px; background: #1a1204;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e5a13a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M12 3 2 20h20L12 3Z"></path><path d="M12 10v4"></path><path d="M12 17v.1"></path></svg>
+          <div style="font-size: 12px; color: #e0b072; line-height: 1.5;">AI guessed <span style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; color: #f2c98a;">3288</span>, tenant typed <span style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; color: #f2c98a;">3268</span>. Check the photo before approving.</div>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; gap: 8px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; color: #a1a1a1;">Previous</span><span style="font-size: 10px; color: #737373;">🔓</span></div>
+          <div style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 7px; border: 1px solid #262626; background: #0d0d0d; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #a1a1a1;">3,120</div>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; color: #a1a1a1;">Current</span></div>
+          <div style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 7px; border: 1px solid #3d5680; box-shadow: 0 0 0 3px rgba(106,168,255,0.12); background: #0d1220; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #ededed;">3,268</div>
+        </div>
+          <div style="width: 66px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; align-items: center;"><span style="font-size: 11px; color: #a1a1a1;">Units</span><div style="width: 100%; text-align: center; height: 40px; line-height: 40px; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #6aa8ff;">148</div></div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; border: 1px solid #1f1f1f; border-radius: 8px; background: #0d0d0d;"><span style="font-size: 12px; color: #a1a1a1;">Electricity · 148 × ₹9</span><span style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #ededed;">₹1,332</span></div>
+
+        <div style="display: flex; gap: 8px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; color: #a1a1a1;">Rent ₹</span></div>
+          <div style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 7px; border: 1px solid #262626; background: #0d0d0d; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #a1a1a1;">0</div>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; color: #a1a1a1;">Misc ₹</span></div>
+          <div style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 7px; border: 1px solid #262626; background: #0d0d0d; font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: #a1a1a1;">0</div>
+        </div>
+        </div>
+        <div style="display: flex; align-items: center; height: 36px; padding: 0 11px; border: 1px solid #262626; border-radius: 6px; background: #0d0d0d; font-size: 12px; color: #737373;">Misc note — water, repair…</div>
+
+        <div style="display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 8px; background: #ffffff; color: #0a0a0a; font-size: 15px; font-weight: 500;">Approve bill · ₹1,332</div>
+        <div style="display: flex; align-items: center; justify-content: center; height: 44px; border: 1px solid #262626; border-radius: 8px; background: #161616; font-size: 14px; font-weight: 500; color: #a1a1a1;">Unlock / reset submission</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
