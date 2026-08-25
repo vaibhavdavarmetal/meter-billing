@@ -112,6 +112,15 @@
       "y": 1080,
       "w": 1440,
       "h": 1040
+    },
+    {
+      "file": "AdminMobileOpen.dc.html",
+      "page": "admin",
+      "title": "Billing \u2014 card open (mobile)",
+      "x": 2980,
+      "y": 1080,
+      "w": 390,
+      "h": 1180
     }
   ],
   "annotations": [
@@ -138,6 +147,14 @@
       "y": -150,
       "w": 620,
       "text": "Properties, tenant names, slugs and the \u20b99/unit rate come from lib/config.js. Readings, amounts and contact names are sample data."
+    },
+    {
+      "id": "open-pair",
+      "page": "admin",
+      "x": 1420,
+      "y": 960,
+      "w": 1000,
+      "text": "Card open state \u2014 same tenant, web and mobile. Click a card to open it in place: check the photo, fix the reading, approve. Web spreads photo and entry side by side; mobile stacks them."
     }
   ],
   "launch": {
