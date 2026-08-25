@@ -72,7 +72,7 @@
       "file": "AdminTenants.dc.html",
       "page": "admin",
       "title": "Tenants",
-      "x": 3120,
+      "x": 4680,
       "y": 0,
       "w": 1440,
       "h": 900
@@ -81,7 +81,7 @@
       "file": "AdminMobile.dc.html",
       "page": "admin",
       "title": "Billing on a phone",
-      "x": 4680,
+      "x": 6240,
       "y": 0,
       "w": 390,
       "h": 844
@@ -121,6 +121,15 @@
       "y": 1080,
       "w": 390,
       "h": 1180
+    },
+    {
+      "file": "AdminBillingLight.dc.html",
+      "page": "admin",
+      "title": "Billing \u2014 light",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900
     }
   ],
   "annotations": [
