@@ -130,6 +130,24 @@
       "y": 0,
       "w": 1440,
       "h": 900
+    },
+    {
+      "file": "TenantHomeDark.dc.html",
+      "page": "tenant",
+      "title": "Home \u2014 dark",
+      "x": 0,
+      "y": 1080,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TenantSubmittedDark.dc.html",
+      "page": "tenant",
+      "title": "Submitted \u2014 dark",
+      "x": 480,
+      "y": 1080,
+      "w": 390,
+      "h": 844
     }
   ],
   "annotations": [
@@ -164,6 +182,14 @@
       "y": 960,
       "w": 1000,
       "text": "Card open state \u2014 same tenant, web and mobile. Click a card to open it in place: check the photo, fix the reading, approve. Web spreads photo and entry side by side; mobile stacks them."
+    },
+    {
+      "id": "tenant-dark",
+      "page": "tenant",
+      "x": 0,
+      "y": 960,
+      "w": 700,
+      "text": "Dark tenant app \u2014 same screens, dark palette. Note: the live app is light-only today; this shows how a dark theme would look if added."
     }
   ],
   "launch": {
