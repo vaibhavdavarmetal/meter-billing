@@ -231,14 +231,14 @@ export default function Admin(){
   };
 
   const renderStaff=()=>{
-    if(!staff) return <p style={{color:"#8a8375"}}>{staffMsg||"Loading house help…"}</p>;
+    if(!staff) return <p style={{color:"var(--muted)"}}>{staffMsg||"Loading house help…"}</p>;
     const addStaff=async()=>{ const list=[...(staff||[]),{id:"",name:"New helper",salary:0}]; await saveStaffList(list); await loadStaff(); };
     const removeStaff=async(id)=>{ if(!window.confirm("Remove this helper? Past records stay saved.")) return; const list=(staff||[]).filter(s=>s.id!==id); await saveStaffList(list); await loadStaff(); };
     const renameStaff=(id,field,val)=> setStaff(staff.map(s=>s.id===id?{...s,[field]:val}:s));
     return (
       <>
-        <p style={{fontSize:13,color:"#8a8375"}}>Track monthly pay for house help. Salary + extra − deduction + last month's balance = amount due. Enter what you actually paid; any difference carries to next month.</p>
-        {staff.length===0&&<p style={{fontSize:14,color:"#8a8375"}}>No house help added yet.</p>}
+        <p style={{fontSize:13,color:"var(--muted)"}}>Track monthly pay for house help. Salary + extra − deduction + last month's balance = amount due. Enter what you actually paid; any difference carries to next month.</p>
+        {staff.length===0&&<p style={{fontSize:14,color:"var(--muted)"}}>No house help added yet.</p>}
         {staff.map((s)=>{
           const e=staffEntries[s.id]||{salary:"",extra:"",deduction:"",paid:false};
           const salary=Number(e.salary)||0, extra=Number(e.extra)||0, deduction=Number(e.deduction)||0;
@@ -250,9 +250,9 @@ export default function Admin(){
             <div key={s.id} style={{...card}}>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
                 <input value={s.name} onChange={e=>renameStaff(s.id,"name",e.target.value)} onBlur={()=>saveStaffList(staff)} style={{...inp,fontWeight:700,flex:1}}/>
-                <button onClick={()=>removeStaff(s.id)} style={{...btn,background:"#fff",color:"#c0392b",border:"1px solid #e4ddd0",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>
+                <button onClick={()=>removeStaff(s.id)} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>
               </div>
-              {carry!==0&&<div style={{fontSize:13,marginBottom:8,color:carry>0?"#a8613c":"#3f6b4a"}}>{carry>0?`Owed from last month: +${money(carry)}`:`Advance from last month: ${money(carry)}`}</div>}
+              {carry!==0&&<div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>{carry>0?`Owed from last month: +${money(carry)}`:`Advance from last month: ${money(carry)}`}</div>}
               <div style={{display:"flex",gap:8}}>
                 <div style={{flex:1}}><label style={lblSm}>Salary ₹</label><input inputMode="numeric" value={e.salary} onChange={ev=>setStaffField(s.id,"salary",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="0"/></div>
                 <div style={{flex:1}}><label style={lblSm}>Extra ₹</label><input inputMode="numeric" value={e.extra} onChange={ev=>setStaffField(s.id,"extra",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="0"/></div>
@@ -260,19 +260,19 @@ export default function Admin(){
               </div>
               <input value={e.extraNote} onChange={ev=>setStaffField(s.id,"extraNote",ev.target.value)} style={{...inpSm,marginTop:6}} placeholder="Note for extra/advance (optional)"/>
               <input value={e.deductionNote} onChange={ev=>setStaffField(s.id,"deductionNote",ev.target.value)} style={{...inpSm,marginTop:6}} placeholder="Note for deduction (optional)"/>
-              <div style={{fontSize:14,margin:"10px 0 8px"}}>Amount due: <strong>{money(due)}</strong> <span style={{fontSize:12,color:"#8a8375"}}>(salary {money(salary)}{extra?` + extra ${money(extra)}`:""}{deduction?` − deduct ${money(deduction)}`:""}{carry?` ${carry>0?"+":"−"} bal ${money(Math.abs(carry))}`:""})</span></div>
+              <div style={{fontSize:14,margin:"10px 0 8px"}}>Amount due: <strong>{money(due)}</strong> <span style={{fontSize:12,color:"var(--muted)"}}>(salary {money(salary)}{extra?` + extra ${money(extra)}`:""}{deduction?` − deduct ${money(deduction)}`:""}{carry?` ${carry>0?"+":"−"} bal ${money(Math.abs(carry))}`:""})</span></div>
               <label style={lblSm}>Amount actually paid ₹</label>
               <input inputMode="numeric" value={staffPaid[s.id]??""} onChange={ev=>setStaffPaid({...staffPaid,[s.id]:ev.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round(due))}/>
-              {pa!=null&&<div style={{fontSize:12,marginTop:4,color:out>0?"#a8613c":out<0?"#3f6b4a":"#8a8375"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Paid extra ${money(-out)} — advance next month`:"Settled exactly"}</div>}
+              {pa!=null&&<div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Paid extra ${money(-out)} — advance next month`:"Settled exactly"}</div>}
               <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12}}>
-                <button onClick={()=>saveStaffEntry(s)} style={{...btn,background:"#3b5b6b",marginTop:0}}>Save {label(period)}</button>
+                <button onClick={()=>saveStaffEntry(s)} style={{...btn,background:"var(--slate)",marginTop:0}}>Save {label(period)}</button>
                 <div style={{marginLeft:"auto"}}><button type="button" onClick={()=>setStaffField(s.id,"paid",!e.paid)} style={{border:"1px solid var(--line)",background:e.paid?"var(--good)":"var(--field)",color:e.paid?"#fff":"var(--muted)",borderRadius:20,padding:"7px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{e.paid?"✓ Paid":"Mark paid"}</button></div>
               </div>
             </div>
           );
         })}
-        <button onClick={addStaff} style={{...btn,background:"#eef3f5",color:"#3b5b6b",marginTop:12}}>+ Add house help</button>
-        {staffMsg&&<p style={{fontSize:13,color:staffMsg.startsWith("Saved")?"#3f6b4a":"#c0392b",textAlign:"center",marginTop:8}}>{staffMsg}</p>}
+        <button onClick={addStaff} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:12}}>+ Add house help</button>
+        {staffMsg&&<p style={{fontSize:13,color:staffMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{staffMsg}</p>}
       </>
     );
   };
@@ -335,19 +335,19 @@ export default function Admin(){
 
   if(!authed){
     const tv = theme==="dark"
-      ? { "--paper":"#16191a","--card":"#20262a","--ink":"#eef1f2","--muted":"#9aa3a7","--line":"#333b40","--field":"#272e33","--slate":"#7fb2c9","--accent":"#c98a5c","--good":"#5fa877","--shadow":"0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)" }
-      : { "--paper":"#f6f2ea","--card":"#ffffff","--ink":"#232826","--muted":"#8a857a","--line":"#e7e0d4","--field":"#f6f2ea","--slate":"#3b6478","--accent":"#b06a3c","--good":"#3f7a52","--shadow":"0 1px 3px rgba(60,50,30,0.08), 0 1px 2px rgba(60,50,30,0.04)" };
+      ? { "--paper":"#0a0a0a","--card":"#111111","--elev":"#161616","--ink":"#ededed","--muted":"#a1a1a1","--faint":"#737373","--line":"#262626","--hair":"#1f1f1f","--field":"#0d0d0d","--slate":"#6aa8ff","--accent":"#e5a13a","--good":"#4cc38a","--good-bg":"#0e1f16","--good-line":"#1d4030","--warn-bg":"#211803","--warn-line":"#433310","--accent-weak":"#0d1220","--primary-bg":"#ffffff","--primary-fg":"#0a0a0a","--shadow":"0 1px 2px rgba(0,0,0,0.4)" }
+      : { "--paper":"#fafafa","--card":"#ffffff","--elev":"#f6f6f6","--ink":"#0a0a0a","--muted":"#666666","--faint":"#8f8f8f","--line":"#eaeaea","--hair":"#f2f2f2","--field":"#fafafa","--slate":"#0068d6","--accent":"#b45309","--good":"#0f7b34","--good-bg":"#edf7f0","--good-line":"#c6e5cf","--warn-bg":"#fff8eb","--warn-line":"#f5e0b3","--accent-weak":"#f4f9ff","--primary-bg":"#0a0a0a","--primary-fg":"#ffffff","--shadow":"0 1px 2px rgba(0,0,0,0.04)" };
     return (
       <div style={{...tv,background:"var(--paper)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{width:"100%",maxWidth:340,background:"var(--card)",border:"1px solid var(--line)",borderRadius:16,padding:24,color:"var(--ink)"}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
             <img src="/admin-logo.png" alt="" style={{width:96,height:96,borderRadius:"50%",objectFit:"cover",border:"2px solid var(--line)"}}/>
           </div>
-          <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#a8613c",fontWeight:700,textAlign:"center"}}>Rent and electricity management</div>
-          <h1 style={{fontFamily:"Georgia, serif",fontSize:24,margin:"4px 0 18px",color:"var(--ink)",textAlign:"center"}}>Home admin sign in</h1>
+          <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"var(--accent)",fontWeight:700,textAlign:"center"}}>Rent and electricity management</div>
+          <h1 style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:24,margin:"4px 0 18px",color:"var(--ink)",textAlign:"center"}}>Home admin sign in</h1>
           <label style={lbl}>Password</label>
           <input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} style={inp} placeholder="Enter admin password" autoFocus/>
-          {err&&<p style={{color:"#c0392b",fontSize:14}}>{err}</p>}
+          {err&&<p style={{color:"#e5484d",fontSize:14}}>{err}</p>}
           <button onClick={login} style={btn} disabled={loading}>{loading?"Checking…":"Sign in"}</button>
         </div>
       </div>
@@ -356,7 +356,7 @@ export default function Admin(){
 
   // ── MANAGE ──
   const renderManage=()=>{
-    if(!reg) return <p style={{color:"#8a8375"}}>{regMsg||"Loading tenants…"}</p>;
+    if(!reg) return <p style={{color:"var(--muted)"}}>{regMsg||"Loading tenants…"}</p>;
     const setProp=(pk,f,v)=>setReg({...reg,[pk]:{...reg[pk],[f]:v}});
     const setTen=(pk,i,f,v)=>{ const n=structuredClone(reg); n[pk].tenants[i][f]=v; setReg(n); };
     const addTen=(pk)=>{ const n=structuredClone(reg); n[pk].tenants.push({slug:pk+"-"+(n[pk].tenants.length+1),name:"New Tenant",rent:0,misc:0}); setReg(n); };
@@ -377,7 +377,7 @@ export default function Admin(){
     };
     return (
       <div>
-        <p style={{fontSize:13,color:"#8a8375"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
+        <p style={{fontSize:13,color:"var(--muted)"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
         <a href="/admin/close-out" style={{display:"block",textAlign:"center",background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",borderRadius:11,padding:"11px",fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:4}}>→ Close out a tenant (final settlement)</a>
         {pendingStarts.length>0&&(
           <div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:14,padding:14,marginBottom:12}}>
@@ -401,7 +401,7 @@ export default function Admin(){
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <input value={prop.name} onChange={e=>setProp(pk,"name",e.target.value)} style={{...inp,fontWeight:700,flex:1}}/>
               <div style={{display:"flex",alignItems:"center",gap:4}}>
-                <span style={{fontSize:12,color:"#8a8375"}}>₹/unit</span>
+                <span style={{fontSize:12,color:"var(--muted)"}}>₹/unit</span>
                 <input inputMode="decimal" value={prop.rate??""} onChange={e=>setProp(pk,"rate",e.target.value.replace(/[^0-9.]/g,""))} style={{...inpSm,width:64}}/>
               </div>
             </div>
@@ -428,10 +428,10 @@ export default function Admin(){
                   <div style={{flex:1}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"monospace"}}/></div>
                   <div style={{width:110}}><label style={lblSm}>July start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
                   <div style={{width:140}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
-                  {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"#fff",color:"#c0392b",border:"1px solid #e4ddd0",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
+                  {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
                 </div>
                 {!prop.isTest&&(
-                  <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"#3b5b6b",cursor:"pointer"}}>
+                  <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"var(--slate)",cursor:"pointer"}}>
                     <input type="checkbox" checked={!!t.biMonthly} onChange={e=>setTen(pk,i,"biMonthly",e.target.checked)}/>
                     Electricity billed every 2 months (bi-monthly)
                   </label>
@@ -444,15 +444,15 @@ export default function Admin(){
                 )}
                 {!prop.isTest&&(
                   <div style={{display:"flex",gap:8,marginTop:12}}>
-                    <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{flex:1,textAlign:"center",background:"transparent",color:"#3f6b4a",border:"1px solid #3f6b4a",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700}}>
+                    <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{flex:1,textAlign:"center",background:"transparent",color:"var(--good)",border:"1px solid var(--good)",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700}}>
                       Send link{t.phone?"":" (pick contact)"}
                     </a>
-                    <button type="button" onClick={()=>setTen(pk,i,"active",t.active===false?true:false)} style={{background:t.active===false?"#a8613c":"var(--field)",color:t.active===false?"#fff":"var(--muted)",border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                    <button type="button" onClick={()=>setTen(pk,i,"active",t.active===false?true:false)} style={{background:t.active===false?"var(--accent)":"var(--field)",color:t.active===false?"#fff":"var(--muted)",border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
                       {t.active===false?"Inactive — reactivate":"Deactivate link"}
                     </button>
                   </div>
                 )}
-                {t.active===false&&<p style={{fontSize:12,color:"#a8613c",marginTop:6,fontWeight:600}}>This tenant's link is blocked. Remember to Save changes.</p>}
+                {t.active===false&&<p style={{fontSize:12,color:"var(--accent)",marginTop:6,fontWeight:600}}>This tenant's link is blocked. Remember to Save changes.</p>}
                 {!prop.isTest&&(
                   <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid var(--line)"}}>
                     <label style={lblSm}>Rental agreement</label>
@@ -477,7 +477,7 @@ export default function Admin(){
                 )}
               </div>
             ))}
-            {!prop.isTest&&<button onClick={()=>addTen(pk)} style={{...btn,background:"#eef3f5",color:"#3b5b6b",marginTop:8}}>+ Add tenant to {prop.name}</button>}
+            {!prop.isTest&&<button onClick={()=>addTen(pk)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:8}}>+ Add tenant to {prop.name}</button>}
 
             {!prop.isTest&&(
               <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--line)"}}>
@@ -487,7 +487,7 @@ export default function Admin(){
                     <input value={c.label||""} onChange={e=>setContact(pk,ci,"label",e.target.value)} style={{...inpSm,width:90}} placeholder="Role"/>
                     <input value={c.name||""} onChange={e=>setContact(pk,ci,"name",e.target.value)} style={{...inpSm,flex:1}} placeholder="Name"/>
                     <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(pk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,width:110}} placeholder="Phone"/>
-                    <button onClick={()=>removeContact(pk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#c0392b",borderRadius:8,padding:"0 10px",cursor:"pointer"}}>✕</button>
+                    <button onClick={()=>removeContact(pk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 10px",cursor:"pointer"}}>✕</button>
                   </div>
                 ))}
                 <button onClick={()=>addContact(pk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"8px"}}>+ Add contact (plumber, electrician, cleaner…)</button>
@@ -495,8 +495,8 @@ export default function Admin(){
             )}
           </div>
         ))}
-        <button onClick={save} style={{...btn,background:"#1f2421",marginTop:20}}>Save changes</button>
-        {regMsg&&<p style={{fontSize:13,color:regMsg.startsWith("Saved")?"#3f6b4a":"#c0392b",textAlign:"center",marginTop:8}}>{regMsg}</p>}
+        <button onClick={save} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
+        {regMsg&&<p style={{fontSize:13,color:regMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{regMsg}</p>}
       </div>
     );
   };
@@ -510,9 +510,9 @@ export default function Admin(){
         <div key={pkey} style={{marginTop:20}}>
           <h2 style={{fontSize:17,display:"flex",alignItems:"center",gap:8}}>
             {prop.name}
-            {prop.isTest&&<span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"#8a4a24",background:"#f7ede4",border:"1px solid #a8613c",borderRadius:6,padding:"2px 8px"}}>practice</span>}
+            {prop.isTest&&<span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--accent)",background:"var(--warn-bg)",border:"1px solid var(--accent)",borderRadius:6,padding:"2px 8px"}}>practice</span>}
           </h2>
-          {prop.isTest&&<p style={{fontSize:12,color:"#8a8375",margin:"0 0 4px"}}>Safe to experiment — never affects real bills.</p>}
+          {prop.isTest&&<p style={{fontSize:12,color:"var(--muted)",margin:"0 0 4px"}}>Safe to experiment — never affects real bills.</p>}
           {prop.tenants.map((t)=>{
             const saved=data.bills?data.bills[t.slug]:null;
             const r=data.readings?data.readings[t.slug]:null;
@@ -536,15 +536,15 @@ export default function Admin(){
 
             if(saved && ex.paid){
               return (
-                <div key={t.slug} style={{...card,borderColor:"#cfe0d4"}}>
+                <div key={t.slug} style={{...card,borderColor:"var(--good-line)"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <strong>{t.name}</strong>
-                    <span style={{fontFamily:"Georgia, serif",fontSize:20,color:"#3f6b4a"}}>{money(saved.amount)}</span>
+                    <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
                   </div>
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
                   <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
                   {saved.paidAmount!=null&&(
-                    <div style={{fontSize:13,marginTop:6,color: (saved.outstanding||0)>0?"#a8613c":(saved.outstanding||0)<0?"#3f6b4a":"var(--muted)"}}>
+                    <div style={{fontSize:13,marginTop:6,color: (saved.outstanding||0)>0?"var(--accent)":(saved.outstanding||0)<0?"var(--good)":"var(--muted)"}}>
                       Paid {money(saved.paidAmount)} · {(saved.outstanding||0)>0?`Short ${money(saved.outstanding)} (carries to next month)`:(saved.outstanding||0)<0?`Overpaid ${money(-saved.outstanding)} (credit next month)`:"Settled exactly"}
                     </div>
                   )}
@@ -557,22 +557,22 @@ export default function Admin(){
             }
 
             return (
-              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"#a8613c":"var(--line)"}}>
+              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"var(--accent)":"var(--line)"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <strong>{t.name}</strong>
-                  {isApproved?<span style={{fontFamily:"Georgia, serif",fontSize:20,color:"#3f6b4a"}}>{money(total)}</span>
+                  {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
                     :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
                 </div>
-                {isApproved&&<div style={{fontSize:12,color:"#3f6b4a",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
-                {t.active===false&&<div style={{fontSize:12,color:"#a8613c",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
+                {isApproved&&<div style={{fontSize:12,color:"var(--good)",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
+                {t.active===false&&<div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
 
                 {biStatus==="skip"&&(
-                  <div style={{background:"#eef3f5",border:"1px solid #cfe0d4",color:"#3b5b6b",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
+                  <div style={{background:"var(--accent-weak)",border:"1px solid var(--good-line)",color:"var(--slate)",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
                     ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
                   </div>
                 )}
                 {biStatus==="bill"&&(
-                  <div style={{fontSize:12,color:"#3f6b4a",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
+                  <div style={{fontSize:12,color:"var(--good)",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
                 )}
 
                 {hasReading&&(
@@ -581,14 +581,14 @@ export default function Admin(){
                       <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
                     </div>
                     {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
-                    {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"#a8613c",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
-                    {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"#fff",color:"#a8613c",border:"1px solid #e4ddd0",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
+                    {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"var(--accent)",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
+                    {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"var(--card)",color:"var(--accent)",border:"1px solid var(--line)",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
                   </>
                 )}
                 {!hasReading&&biStatus!=="skip"&&(
                   <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
                     <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
-                    {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"#3f6b4a",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
+                    {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"var(--good)",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
                   </div>
                 )}
                 {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
@@ -598,7 +598,7 @@ export default function Admin(){
                   <div style={{flex:1}}>
                     <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
                     <div style={{position:"relative"}}>
-                      <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"#eef3f5":"#fff",color:"var(--ink)"}} placeholder="0"/>
+                      <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"var(--accent-weak)":"#fff",color:"var(--ink)"}} placeholder="0"/>
                       {!isApproved&&(
                         <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
                           {prevUnlocked[t.slug]?"🔓":"✏️"}
@@ -606,15 +606,15 @@ export default function Admin(){
                       )}
                     </div>
                   </div>
-                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"#eef3f5":"#fff"}}/></div>
-                  <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"#3b5b6b"}}>{units??"—"}</div><div style={{fontSize:10,color:"#8a8375"}}>units</div></div>
+                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"var(--accent-weak)":"#fff"}}/></div>
+                  <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"var(--slate)"}}>{units??"—"}</div><div style={{fontSize:10,color:"var(--muted)"}}>units</div></div>
                 </div>
 
                 {/* Electricity amount — always visible */}
-                <div style={{fontSize:13,color:"#8a8375",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"#1f2421"}}>{money(elec)}</strong></div>
+                <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"var(--ink)"}}>{money(elec)}</strong></div>
 
                 {carry!==0&&(
-                  <div style={{fontSize:13,marginBottom:8,color:carry>0?"#a8613c":"#3f6b4a"}}>
+                  <div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>
                     {carry>0?`Carried from last month: +${money(carry)} (was short)`:`Credit from last month: ${money(carry)} (overpaid)`}
                   </div>
                 )}
@@ -627,18 +627,18 @@ export default function Admin(){
                 <input value={ex.miscNote} onChange={e=>setExtra(t.slug,"miscNote",e.target.value)} onBlur={()=>persistExtra(t.slug)} style={{...inpSm,marginTop:6}} placeholder="Misc note (e.g. water, repair)"/>
 
                 {!isApproved?(
-                  <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"#3b5b6b",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill</button>
+                  <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"var(--slate)",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill</button>
                 ):(
                   <div style={{marginTop:12}}>
-                    <div style={{fontSize:13,color:"#8a8375",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"#1f2421"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
+                    <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"var(--ink)"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"#fff",color:"#3b5b6b",border:"1px solid #e4ddd0",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
-                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"#3f6b4a",marginTop:0}}>Send bill on WhatsApp</a>
+                      <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
+                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"var(--good)",marginTop:0}}>Send bill on WhatsApp</a>
                     </div>
                     <div style={{marginTop:12}}>
                       <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
                       <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
-                      {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"#a8613c":out<0?"#3f6b4a":"#8a8375"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
+                      {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
                     </div>
                     <div style={{marginTop:14}}>
                       <SlideToPay onConfirm={async()=>{
@@ -677,14 +677,14 @@ export default function Admin(){
               await fetchPeriod(period,pw);
             }catch{ setSavedMsg("Could not save. Try again."); }
             setSaving(false);
-          }} style={{...btn,background:"#1f2421"}} disabled={saving}>{saving?"Saving…":"Save all approved bills to history"}</button>
-          {savedMsg&&<p style={{fontSize:13,color:"#3f6b4a",textAlign:"center",marginTop:8}}>{savedMsg}</p>}
+          }} style={{...btn,background:"var(--ink)"}} disabled={saving}>{saving?"Saving…":"Save all approved bills to history"}</button>
+          {savedMsg&&<p style={{fontSize:13,color:"var(--good)",textAlign:"center",marginTop:8}}>{savedMsg}</p>}
 
           <div style={{display:"flex",gap:8,marginTop:16}}>
-            <a href={`/api/report?scope=month&period=${period}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"#eef3f5",color:"#3b5b6b",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ This month (CSV)</a>
-            <a href={`/api/report?scope=year&year=${period.split("-")[0]}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"#eef3f5",color:"#3b5b6b",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ Full year (CSV)</a>
+            <a href={`/api/report?scope=month&period=${period}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ This month (CSV)</a>
+            <a href={`/api/report?scope=year&year=${period.split("-")[0]}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ Full year (CSV)</a>
           </div>
-          <p style={{fontSize:12,color:"#8a8375",textAlign:"center",marginTop:6}}>Reports include only bills saved to history. Opens as a spreadsheet.</p>
+          <p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginTop:6}}>Reports include only bills saved to history. Opens as a spreadsheet.</p>
         </div>
       )}
     </>
@@ -692,8 +692,53 @@ export default function Admin(){
   };
 
   const themeVars = theme==="dark"
-    ? { "--paper":"#16191a","--card":"#20262a","--ink":"#eef1f2","--muted":"#9aa3a7","--line":"#333b40","--field":"#272e33","--slate":"#7fb2c9","--accent":"#c98a5c","--good":"#5fa877","--shadow":"0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)" }
-    : { "--paper":"#f6f2ea","--card":"#ffffff","--ink":"#232826","--muted":"#8a857a","--line":"#e7e0d4","--field":"#f6f2ea","--slate":"#3b6478","--accent":"#b06a3c","--good":"#3f7a52","--shadow":"0 1px 3px rgba(60,50,30,0.08), 0 1px 2px rgba(60,50,30,0.04)" };
+    ? { "--paper":"#0a0a0a","--card":"#111111","--elev":"#161616","--ink":"#ededed","--muted":"#a1a1a1","--faint":"#737373","--line":"#262626","--hair":"#1f1f1f","--field":"#0d0d0d","--slate":"#6aa8ff","--accent":"#e5a13a","--good":"#4cc38a","--good-bg":"#0e1f16","--good-line":"#1d4030","--warn-bg":"#211803","--warn-line":"#433310","--accent-weak":"#0d1220","--primary-bg":"#ffffff","--primary-fg":"#0a0a0a","--shadow":"0 1px 2px rgba(0,0,0,0.4)" }
+    : { "--paper":"#fafafa","--card":"#ffffff","--elev":"#f6f6f6","--ink":"#0a0a0a","--muted":"#666666","--faint":"#8f8f8f","--line":"#eaeaea","--hair":"#f2f2f2","--field":"#fafafa","--slate":"#0068d6","--accent":"#b45309","--good":"#0f7b34","--good-bg":"#edf7f0","--good-line":"#c6e5cf","--warn-bg":"#fff8eb","--warn-line":"#f5e0b3","--accent-weak":"#f4f9ff","--primary-bg":"#0a0a0a","--primary-fg":"#ffffff","--shadow":"0 1px 2px rgba(0,0,0,0.04)" };
+
+  // Month summary for the rail (real values from saved bills / readings).
+  let sumBilled=0,sumCollected=0,paidCount=0,tenantCount=0,noReadingCount=0; const attention=[];
+  if(data){
+    Object.entries(data.properties).forEach(([pk,prop])=>{
+      if(prop.isTest) return;
+      prop.tenants.forEach((t)=>{
+        tenantCount++;
+        const b=data.bills?data.bills[t.slug]:null;
+        const r=data.readings?data.readings[t.slug]:null;
+        if(b){ sumBilled+=b.amount||0; if(b.paid){ sumCollected+=(b.paidAmount!=null?b.paidAmount:b.amount); paidCount++; } }
+        if(!r) noReadingCount++;
+        const ai=r&&r.aiReading!=null?r.aiReading:null;
+        if(ai!=null&&r&&Number(ai)!==Number(r.reading)&&!(b&&b.paid)) attention.push({name:t.name,kind:"mismatch"});
+      });
+    });
+  }
+  const outstanding=sumBilled-sumCollected;
+  const collectedPct= sumBilled>0 ? Math.round((sumCollected/sumBilled)*100) : 0;
+  const propsForNav = (data&&data.properties) || reg || null;
+  const dotColors=["var(--good)","var(--slate)","var(--faint)","var(--accent)"];
+
+  const NavIcon=({name})=>{
+    const c={
+      billing:<path d="M4 4h16v16l-2.5-1.6L15 20l-3-1.6L9 20l-2.5-1.6L4 20V4Z M8.5 9h7 M8.5 13h4"/>,
+      manage:<g><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0 M16 5.5a3 3 0 0 1 0 5.6 M17.5 19a5 5 0 0 0-2-4"/></g>,
+      staff:<g><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7 M3 12h18"/></g>,
+    }[name];
+    return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{c}</svg>;
+  };
+  const ThemeBtn=({compact})=>(
+    <button onClick={toggleTheme} aria-label="Toggle light or dark theme" style={{display:"flex",alignItems:"center",gap:6,height:32,padding:"0 12px",border:"1px solid var(--line)",borderRadius:6,background:"var(--card)",color:"var(--ink)",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+      {theme==="dark"
+        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>}
+      {compact?null:(theme==="dark"?"Light":"Dark")}
+    </button>
+  );
+  const MonthStepper=()=>(
+    <div style={{display:"flex",alignItems:"center",gap:2,height:32,padding:"0 4px",border:"1px solid var(--line)",borderRadius:8,background:"var(--card)"}}>
+      <button onClick={async()=>{ const p=shiftPeriod(period,-1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Previous month">‹</button>
+      <div style={{fontSize:13,fontWeight:500,minWidth:104,textAlign:"center",color:"var(--ink)"}}>{label(period)}</div>
+      <button onClick={async()=>{ const p=shiftPeriod(period,1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Next month">›</button>
+    </div>
+  );
 
   return (
     <div style={{...themeVars, background:"var(--paper)", color:"var(--ink)", minHeight:"100vh"}}>
@@ -704,40 +749,131 @@ export default function Admin(){
         .admin-wrap button{ transition: filter .15s, transform .05s; }
         .admin-wrap button:active{ transform: translateY(1px); }
         .admin-wrap a, .admin-wrap button{ -webkit-tap-highlight-color: transparent; }
+        .console{ display:flex; min-height:100vh; align-items:stretch; }
+        .sidebar{ width:240px; flex-shrink:0; background:var(--card); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:16px 12px; position:sticky; top:0; height:100vh; }
+        .maincol{ flex:1; min-width:0; display:flex; flex-direction:column; }
+        .topbar{ display:flex; align-items:center; gap:12px; min-height:60px; padding:0 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--paper); z-index:10; }
+        .content{ flex:1; display:flex; gap:20px; padding:20px; min-width:0; align-items:flex-start; }
+        .contentmain{ flex:1; min-width:0; }
+        .rail{ width:300px; flex-shrink:0; position:sticky; top:80px; }
+        .navitem{ display:flex; align-items:center; gap:10px; height:34px; padding:0 10px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--muted); width:100%; text-align:left; }
+        .navitem.active{ background:var(--elev); color:var(--ink); }
+        .mobtabs{ display:none; }
+        @media (max-width: 899px){
+          .console{ display:block; }
+          .sidebar,.rail{ display:none; }
+          .topbar{ position:static; min-height:auto; padding:14px 16px; flex-wrap:wrap; }
+          .content{ display:block; padding:16px; max-width:600px; margin:0 auto; }
+          .mobtabs{ display:flex; gap:8px; padding:12px 16px 0; max-width:600px; margin:0 auto; }
+        }
       `}</style>
-      <div className="admin-wrap" style={{maxWidth:560,margin:"0 auto",padding:"20px 16px 48px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-          <h1 style={{fontFamily:"Georgia, serif",fontSize:22,margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Manage tenants":"House help"}</h1>
-          <button onClick={toggleTheme} aria-label="Toggle theme" style={{border:"1px solid var(--line)",background:"var(--card)",color:"var(--ink)",borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-            {theme==="dark"?"☀ Light":"🌙 Dark"}
-          </button>
-        </div>
+      <div className="admin-wrap console">
 
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>setView("billing")} style={{...tabBtn,...(view==="billing"?tabActive:{})}}>Billing</button>
-          <button onClick={openManage} style={{...tabBtn,...(view==="manage"?tabActive:{})}}>Tenants</button>
-          <button onClick={openStaff} style={{...tabBtn,...(view==="staff"?tabActive:{})}}>House help</button>
-        </div>
-
-        {(view==="billing"||view==="staff")&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,padding:4,marginBottom:16}}>
-            <button onClick={async()=>{ const p=shiftPeriod(period,-1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Previous month">‹</button>
-            <div style={{fontSize:14,fontWeight:600,minWidth:120,textAlign:"center"}}>{label(period)}</div>
-            <button onClick={async()=>{ const p=shiftPeriod(period,1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Next month">›</button>
+        <aside className="sidebar">
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 10px 18px"}}>
+            <div style={{width:28,height:28,borderRadius:7,background:"var(--primary-bg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-fg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",letterSpacing:"-0.011em"}}>Meter Billing</div>
+              <div style={{fontSize:11,color:"var(--faint)"}}>Owner console</div>
+            </div>
           </div>
-        )}
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            <button className={"navitem"+(view==="billing"?" active":"")} onClick={()=>setView("billing")}><NavIcon name="billing"/>Billing</button>
+            <button className={"navitem"+(view==="manage"?" active":"")} onClick={openManage}><NavIcon name="manage"/>Tenants</button>
+            <button className={"navitem"+(view==="staff"?" active":"")} onClick={openStaff}><NavIcon name="staff"/>House help</button>
+          </div>
+          {propsForNav&&(
+            <>
+              <div style={{height:1,background:"var(--line)",margin:"16px 10px"}}/>
+              <div style={{fontSize:11,fontWeight:500,color:"var(--faint)",padding:"0 10px 8px"}}>Properties</div>
+              <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                {Object.entries(propsForNav).map(([pk,prop],idx)=>(
+                  <div key={pk} style={{display:"flex",alignItems:"center",gap:10,height:30,padding:"0 10px",borderRadius:6,color:"var(--muted)",fontSize:13}}>
+                    <span style={{width:6,height:6,borderRadius:999,background:dotColors[idx%dotColors.length],flexShrink:0}}/>
+                    <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prop.name}</span>
+                    <span style={{fontSize:11,color:"var(--faint)"}}>{prop.tenants?prop.tenants.length:0}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          <div style={{flex:1}}/>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:10,borderTop:"1px solid var(--line)"}}>
+            <img src="/admin-logo.png" alt="" style={{width:28,height:28,borderRadius:999,objectFit:"cover",border:"1px solid var(--line)"}}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",gap:1}}>
+              <div style={{fontSize:12,fontWeight:500,color:"var(--ink)"}}>Signed in</div>
+              <div style={{fontSize:11,color:"var(--faint)"}}>Owner</div>
+            </div>
+          </div>
+        </aside>
 
-        {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
+        <div className="maincol">
+          <div className="topbar">
+            <h1 style={{fontSize:16,fontWeight:600,letterSpacing:"-0.014em",margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Tenants":"House help"}</h1>
+            {(view==="billing"||view==="staff")&&<MonthStepper/>}
+            <div style={{flex:1}}/>
+            <ThemeBtn/>
+          </div>
+
+          <div className="mobtabs">
+            <button onClick={()=>setView("billing")} style={{...tabBtn,...(view==="billing"?tabActive:{})}}>Billing</button>
+            <button onClick={openManage} style={{...tabBtn,...(view==="manage"?tabActive:{})}}>Tenants</button>
+            <button onClick={openStaff} style={{...tabBtn,...(view==="staff"?tabActive:{})}}>House help</button>
+          </div>
+
+          <div className="content">
+            <div className="contentmain">
+              {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
+            </div>
+            {view==="billing"&&data&&(
+              <aside className="rail">
+                <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,display:"flex",flexDirection:"column",gap:14}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{label(period)}</div>
+                    <div style={{fontSize:12,color:"var(--faint)"}}>{paidCount} of {tenantCount} paid</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    <div style={{height:6,borderRadius:999,background:"var(--elev)",overflow:"hidden",display:"flex"}}><div style={{width:collectedPct+"%",background:"var(--good)"}}/></div>
+                    <div style={{fontSize:11,color:"var(--faint)"}}>{collectedPct}% collected</div>
+                  </div>
+                </div>
+                <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:"16px 16px 4px",display:"flex",flexDirection:"column",marginTop:16}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",paddingBottom:12}}>Needs attention</div>
+                  {noReadingCount>0&&(
+                    <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 0",borderTop:"1px solid var(--hair)"}}>
+                      <span style={{width:6,height:6,borderRadius:999,background:"var(--faint)",marginTop:6,flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{noReadingCount} tenant{noReadingCount>1?"s have":" has"} not submitted a reading</div>
+                    </div>
+                  )}
+                  {attention.slice(0,4).map((a,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 0",borderTop:"1px solid var(--hair)"}}>
+                      <span style={{width:6,height:6,borderRadius:999,background:"var(--accent)",marginTop:6,flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{a.name}<div style={{fontSize:12,color:"var(--faint)"}}>Reading and photo differ — check before approving</div></div>
+                    </div>
+                  ))}
+                  {noReadingCount===0&&attention.length===0&&<div style={{fontSize:13,color:"var(--faint)",padding:"12px 0",borderTop:"1px solid var(--hair)"}}>All caught up.</div>}
+                </div>
+              </aside>
+            )}
+          </div>
+        </div>
 
         {/* Approve confirmation dialog */}
         {confirmSlug&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmSlug(null)}>
-            <div style={{background:"var(--card)",color:"var(--ink)",borderRadius:16,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <h3 style={{margin:"0 0 8px",fontFamily:"Georgia, serif"}}>Approve this bill?</h3>
+            <div style={{background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",borderRadius:14,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:600,letterSpacing:"-0.014em"}}>Approve this bill?</h3>
               <p style={{fontSize:14,color:"var(--muted)",margin:"0 0 18px"}}>Once approved, you can send it on WhatsApp and mark it paid. You can still tap Edit to change it.</p>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setConfirmSlug(null)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
-                <button onClick={()=>{ const s=confirmSlug; const pv=Number(prev[s]||0); const r=data.readings?data.readings[s]:null; const ov=override[s]; const cv= ov!==undefined&&ov!==""?Number(ov):(r?r.reading:null); doApprove(s,pv,cv); }} style={{...btn,background:"#3f6b4a",marginTop:0}}>Approve</button>
+                <button onClick={()=>setConfirmSlug(null)} style={{...btn,background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
+                <button onClick={()=>{ const s=confirmSlug; const pv=Number(prev[s]||0); const r=data.readings?data.readings[s]:null; const ov=override[s]; const cv= ov!==undefined&&ov!==""?Number(ov):(r?r.reading:null); doApprove(s,pv,cv); }} style={{...btn,background:"var(--good)",color:"#fff",marginTop:0}}>Approve</button>
               </div>
             </div>
           </div>
@@ -746,11 +882,11 @@ export default function Admin(){
         {/* Mark-unpaid confirmation dialog */}
         {confirmUnpaid&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmUnpaid(null)}>
-            <div style={{background:"var(--card)",color:"var(--ink)",borderRadius:16,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <h3 style={{margin:"0 0 8px",fontFamily:"Georgia, serif"}}>Mark this bill unpaid?</h3>
+            <div style={{background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",borderRadius:14,padding:22,maxWidth:340,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:600,letterSpacing:"-0.014em"}}>Mark this bill unpaid?</h3>
               <p style={{fontSize:14,color:"var(--muted)",margin:"0 0 18px"}}>This will unlock the bill for editing again and show the meter photo. You can re-mark it paid afterwards.</p>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setConfirmUnpaid(null)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
+                <button onClick={()=>setConfirmUnpaid(null)} style={{...btn,background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
                 <button onClick={async()=>{
                   const {slug,pkey}=confirmUnpaid;
                   const prop=data.properties[pkey];
@@ -760,7 +896,7 @@ export default function Admin(){
                   const bill=await saveOneBill(pkey,prop,t,false);
                   setData(prev=>prev?{...prev,bills:{...prev.bills,[slug]:bill}}:prev);
                   persistExtra(slug);
-                }} style={{...btn,background:"var(--accent)",marginTop:0}}>Mark unpaid</button>
+                }} style={{...btn,background:"var(--accent)",color:"#fff",marginTop:0}}>Mark unpaid</button>
               </div>
             </div>
           </div>
