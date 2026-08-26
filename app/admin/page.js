@@ -217,13 +217,18 @@ export default function Admin(){
   const loadMoveouts=async(password=pw)=>{
     try{ const r=await fetch(`/api/settlement?moveouts=1&pw=${encodeURIComponent(password)}`); if(!r.ok) return; const d=await r.json(); setMoveouts(d.moveouts||[]); }catch{}
   };
+  // Reflect the movingOut flag in the editable registry copy so a later "Save changes"
+  // on the Tenants tab doesn't clobber it.
+  const patchRegMovingOut=(slug,val)=> setReg(prev=>{ if(!prev) return prev; const n=structuredClone(prev); for(const p of Object.values(n)){ if(!Array.isArray(p.tenants)) continue; const t=p.tenants.find(x=>x.slug===slug); if(t){ t.movingOut=val; break; } } return n; });
   const startMoveOut=async(slug)=>{
     setConfirmMoveOut(null); setOpenMenu(null);
     try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start-moveout",pw,slug})}); }catch{}
+    patchRegMovingOut(slug,true);
     await loadMoveouts();
   };
   const cancelMoveOut=async(slug)=>{
     try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"cancel-moveout",pw,slug})}); }catch{}
+    patchRegMovingOut(slug,false);
     await loadMoveouts();
   };
   const openSettlement=async(slug)=>{
@@ -247,18 +252,27 @@ export default function Admin(){
   };
   const setSF=(f,v)=> setSettle(p=>({...p,[f]:v}));
 
-  // ⋯ per-tenant actions menu (currently: Start move-out, with confirmation)
-  const MoreMenu=({slug,name})=>(
+  // ⋯ per-tenant actions menu: Start move-out (with confirmation); Remove (Tenants tab only)
+  const MoreMenu=({slug,name,onRemove})=>(
     <div style={{position:"relative"}}>
       <button onClick={(e)=>{ e.stopPropagation(); setOpenMenu(openMenu===slug?null:slug); }} aria-label="More actions" style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--muted)",borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
       </button>
       {openMenu===slug&&(
-        <div style={{position:"absolute",right:0,top:36,zIndex:30,minWidth:180,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,boxShadow:"var(--shadow)",overflow:"hidden"}} onClick={(e)=>e.stopPropagation()}>
+        <div style={{position:"absolute",right:0,top:36,zIndex:30,minWidth:190,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,boxShadow:"var(--shadow)",overflow:"hidden"}} onClick={(e)=>e.stopPropagation()}>
           <button onClick={()=>{ setOpenMenu(null); setConfirmMoveOut({slug,name}); }} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",padding:"11px 13px",background:"transparent",border:"none",color:"var(--ink)",fontSize:13,fontWeight:500,cursor:"pointer"}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
             Start move-out
           </button>
+          {onRemove&&(
+            <>
+              <div style={{height:1,background:"var(--line)"}}/>
+              <button onClick={()=>{ setOpenMenu(null); onRemove(); }} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",padding:"11px 13px",background:"transparent",border:"none",color:"#e5484d",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"></path></svg>
+                Remove tenant
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -467,28 +481,30 @@ export default function Admin(){
             </div>
             {prop.tenants.map((t,i)=>(
               <div key={i} style={{...card,padding:0,overflow:"hidden"}}>
-                <button type="button" onClick={()=>setExpandedTenant(x=>({...x,[t.slug]:!x[t.slug]}))} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"14px 14px",background:"transparent",border:"none",cursor:"pointer",color:"var(--ink)"}}>
-                  <span style={{fontWeight:700,fontSize:15,flex:1,textAlign:"left",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}{t.active===false?" (inactive)":""}</span>
-                  {t.agreementUrl&&<span title="Agreement on file" style={{fontSize:13}}>📄</span>}
-                  <span style={{fontSize:12,color:"var(--muted)"}}>{t.rent?`₹${Number(t.rent).toLocaleString("en-IN")}`:""}</span>
-                  <span style={{fontSize:14,color:"var(--slate)",transform:expandedTenant[t.slug]?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
-                </button>
+                <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px 8px 14px"}}>
+                  <button type="button" onClick={()=>setExpandedTenant(x=>({...x,[t.slug]:!x[t.slug]}))} style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,padding:"6px 0",background:"transparent",border:"none",cursor:"pointer",color:"var(--ink)"}}>
+                    <span style={{fontWeight:700,fontSize:15,flex:1,minWidth:0,textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}{t.active===false?" (inactive)":""}{t.movingOut?" · moving out":""}</span>
+                    {t.agreementUrl&&<span title="Agreement on file" style={{fontSize:13}}>📄</span>}
+                    <span style={{fontSize:12,color:"var(--muted)"}}>{t.rent?`₹${Number(t.rent).toLocaleString("en-IN")}`:""}</span>
+                    <span style={{fontSize:14,color:"var(--slate)",transform:expandedTenant[t.slug]?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
+                  </button>
+                  {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name} onRemove={()=>removeTen(pk,i)}/>}
+                </div>
                 {expandedTenant[t.slug]&&(
                 <div style={{padding:"0 12px 12px"}}>
-                <div style={{display:"flex",gap:8,marginBottom:6}}>
-                  <div style={{flex:1}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
-                  <div style={{width:84}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
-                  <div style={{width:84}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={t.misc??""} onChange={e=>setTen(pk,i,"misc",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
+                <div style={{display:"flex",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                  <div style={{flex:"2 1 140px"}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
+                  <div style={{flex:"1 1 84px"}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
+                  <div style={{flex:"1 1 84px"}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={t.misc??""} onChange={e=>setTen(pk,i,"misc",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
                 </div>
                 <div style={{marginBottom:6}}>
                   <label style={lblSm}>WhatsApp number (with country code, e.g. 919812345678)</label>
                   <input inputMode="tel" value={t.phone||""} onChange={e=>setTen(pk,i,"phone",e.target.value.replace(/[^0-9]/g,""))} style={inpSm} placeholder="91XXXXXXXXXX"/>
                 </div>
-                <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-                  <div style={{flex:1}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"monospace"}}/></div>
-                  <div style={{width:110}}><label style={lblSm}>July start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
-                  <div style={{width:140}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
-                  {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
+                <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
+                  <div style={{flex:"1 1 100%"}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace"}}/></div>
+                  <div style={{flex:"1 1 120px"}}><label style={lblSm}>Start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
+                  <div style={{flex:"1 1 150px"}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
                 </div>
                 {!prop.isTest&&(
                   <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"var(--slate)",cursor:"pointer"}}>
