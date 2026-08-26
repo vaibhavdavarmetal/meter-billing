@@ -438,7 +438,7 @@ export default function Admin(){
     return (
       <div>
         <p style={{fontSize:13,color:"var(--muted)"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
-        <a href="/admin/close-out" style={{display:"block",textAlign:"center",background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",borderRadius:11,padding:"11px",fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:4}}>→ Close out a tenant (final settlement)</a>
+        <p style={{fontSize:13,color:"var(--muted)"}}>To move a tenant out, open their <strong style={{color:"var(--ink)"}}>⋯ menu on the Billing tab → Start move-out</strong>. They submit a final reading and you settle it there.</p>
         {pendingStarts.length>0&&(
           <div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:14,padding:14,marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Move-in readings to verify</div>
