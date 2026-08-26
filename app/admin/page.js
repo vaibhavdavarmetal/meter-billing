@@ -633,10 +633,7 @@ export default function Admin(){
                 <div key={t.slug} style={{...card,borderColor:"var(--good-line)"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                     <strong>{t.name}</strong>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
-                      {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name}/>}
-                    </div>
+                    <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
                   </div>
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
                   <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
@@ -657,11 +654,8 @@ export default function Admin(){
               <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"var(--accent)":"var(--line)"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                   <strong>{t.name}</strong>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
-                      :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
-                    {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name}/>}
-                  </div>
+                  {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
+                    :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
                 </div>
                 {isApproved&&<div style={{fontSize:12,color:"var(--good)",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
                 {t.active===false&&<div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
