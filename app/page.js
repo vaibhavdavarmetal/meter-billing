@@ -218,10 +218,19 @@ function TenantForm() {
         .tenant-wrap a, .tenant-wrap button { -webkit-tap-highlight-color: transparent; }
         @keyframes shimmer { 0% { background-position: 100% 0 } 100% { background-position: -100% 0 } }
         @keyframes spin { to { transform: rotate(360deg) } }
+        .thead-in { max-width: 460px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .tpage { max-width: 460px; margin: 0 auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+        .tside { display: flex; flex-direction: column; gap: 12px; }
+        @media (min-width: 820px) {
+          .thead-in { max-width: 940px; }
+          .tpage { max-width: 940px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; padding-top: 24px; }
+          .tside { position: sticky; top: 88px; }
+        }
       `}</style>
       <div className="tenant-wrap">
         {bar && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", background: "var(--page)", borderBottom: "1px solid var(--line)" }}>
+          <div style={{ padding: "14px 16px", background: "var(--page)", borderBottom: "1px solid var(--line)" }}>
+           <div className="thead-in">
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, background: "var(--primary-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <IconHome stroke="var(--primary-fg)" />
@@ -234,6 +243,7 @@ function TenantForm() {
             <button onClick={toggleTheme} aria-label="Toggle light or dark theme" style={{ display: "flex", alignItems: "center", gap: 6, height: 28, padding: "0 10px", border: "1px solid var(--line)", borderRadius: 999, background: "var(--card)", color: "var(--sec)", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
               {theme === "dark" ? <><IconSun /> Light</> : <><IconMoon /> Dark</>}
             </button>
+           </div>
           </div>
         )}
         {children}
@@ -485,16 +495,27 @@ function TenantForm() {
 
   return (
     <Shell>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 16px calc(24px + env(safe-area-inset-bottom))" }}>
-        {settlingIn ? (
-          <>{MeterCard()}</>
-        ) : (
-          <>
-            {!(awaitingStart || startSubmitted) && DuesCard()}
-            {MeterCard()}
-          </>
-        )}
-        {ContactsCard()}
+      <div className="tpage">
+        <div>
+          {settlingIn ? (
+            <>{MeterCard()}</>
+          ) : (
+            <>
+              {!(awaitingStart || startSubmitted) && DuesCard()}
+              {MeterCard()}
+            </>
+          )}
+        </div>
+        <aside className="tside">
+          {contacts && contacts.length > 0 ? ContactsCard() : (
+            <div style={dashCard}>
+              <div style={cardLabel}>Maintenance &amp; help</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 10, lineHeight: 1.5 }}>
+                No maintenance contacts have been added yet.{ownerWhatsapp ? " Reach the owner on WhatsApp if you need help." : " Contact the owner if you need help."}
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
 
       {showConfirm && (
