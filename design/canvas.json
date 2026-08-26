@@ -11,6 +11,10 @@
     {
       "id": "foundations",
       "name": "Foundations"
+    },
+    {
+      "id": "cycle",
+      "name": "Payment cycle"
     }
   ],
   "artboards": [
@@ -148,6 +152,42 @@
       "y": 0,
       "w": 390,
       "h": 980
+    },
+    {
+      "file": "CycleNewMonth.dc.html",
+      "page": "cycle",
+      "title": "1 \u00b7 New month \u2014 reading due",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 560
+    },
+    {
+      "file": "CycleSubmitted.dc.html",
+      "page": "cycle",
+      "title": "2 \u00b7 Submitted \u2014 awaiting owner",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 600
+    },
+    {
+      "file": "CycleBillPending.dc.html",
+      "page": "cycle",
+      "title": "3 \u00b7 Bill ready \u2014 payment pending",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 560
+    },
+    {
+      "file": "CyclePaid.dc.html",
+      "page": "cycle",
+      "title": "4 \u00b7 Paid \u2014 settled",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 560
     }
   ],
   "annotations": [
@@ -182,10 +222,18 @@
       "y": -150,
       "w": 760,
       "text": "Tenant app \u2014 dark is the default (top row); the toggle in the header switches to light (row below). After submitting, three cards show: Total due, Meter reading (with the units chart in a collapsed \u201cView detailed units info\u201d accordion, shown open here), and Maintenance."
+    },
+    {
+      "id": "cycle-note",
+      "page": "cycle",
+      "x": 0,
+      "y": -150,
+      "w": 760,
+      "text": "What the tenant sees across one month, left to right: a new month opens with the reading due; after they submit, it locks and waits for the owner; once the owner finalises, the bill shows as Pending payment; when the owner marks it received, it reads Paid. These are the live app states (dark, the default) \u2014 the account and meter cards already render them from the owner's actions."
     }
   ],
   "launch": {
     "view": "canvas",
-    "page": "admin"
+    "page": "cycle"
   }
 }
