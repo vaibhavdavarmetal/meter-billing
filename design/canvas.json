@@ -243,10 +243,46 @@
       "h": 520
     },
     {
+      "file": "MOAdminStart.dc.html",
+      "page": "moveout",
+      "title": "1 \u00b7 Admin \u2014 Start move-out",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 430
+    },
+    {
+      "file": "MOTenantFinal.dc.html",
+      "page": "moveout",
+      "title": "2 \u00b7 Tenant \u2014 Final reading (unlocked)",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 500
+    },
+    {
+      "file": "MOTenantFinalSubmitted.dc.html",
+      "page": "moveout",
+      "title": "3 \u00b7 Tenant \u2014 Final reading submitted",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 380
+    },
+    {
+      "file": "MOAdminBanner.dc.html",
+      "page": "moveout",
+      "title": "4 \u00b7 Admin \u2014 Move-out request",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 330
+    },
+    {
       "file": "MoveOutAdmin.dc.html",
       "page": "moveout",
-      "title": "Admin \u00b7 Close-out settlement",
-      "x": 0,
+      "title": "5 \u00b7 Admin \u2014 Settlement (in console)",
+      "x": 1880,
       "y": 0,
       "w": 390,
       "h": 620
@@ -254,8 +290,8 @@
     {
       "file": "MoveOutTenant1.dc.html",
       "page": "moveout",
-      "title": "Tenant \u00b7 Final settlement",
-      "x": 470,
+      "title": "6 \u00b7 Tenant \u2014 Final settlement",
+      "x": 2350,
       "y": 0,
       "w": 390,
       "h": 500
@@ -263,8 +299,8 @@
     {
       "file": "MoveOutTenant2.dc.html",
       "page": "moveout",
-      "title": "Tenant \u00b7 Move-out complete",
-      "x": 940,
+      "title": "7 \u00b7 Tenant \u2014 Move-out complete",
+      "x": 2820,
       "y": 0,
       "w": 390,
       "h": 300
@@ -323,13 +359,13 @@
       "id": "moveout-note",
       "page": "moveout",
       "x": 0,
-      "y": -150,
-      "w": 900,
-      "text": "Move-out (close-out): the owner prepares the final settlement \u2014 final reading, deposit held minus deductions, any rent adjustment \u2014 which nets to a refund or a payable (Admin \u00b7 Close-out). The tenant receives that settlement (Tenant \u00b7 Final settlement), and once settled the owner deactivates the link and the tenant sees a clean close (Move-out complete)."
+      "y": -160,
+      "w": 1000,
+      "text": "Move-out is TENANT-INITIATED. (1) The owner taps Start move-out on the tenant \u2014 no data entry. (2) The tenant's app unlocks a Final reading card; they photograph the meter on their last day and submit. (3) The owner gets a banner that the tenant wants to move out with the final reading. (4) One tap opens the settlement inside the console \u2014 same sign-in, prefilled with the final reading \u2014 where deposit, deductions and adjustments net to a refund or payable. (5-6) The tenant sees the settlement, then a clean Move-out complete once the owner deactivates the link."
     }
   ],
   "launch": {
     "view": "canvas",
-    "page": "movein"
+    "page": "moveout"
   }
 }
