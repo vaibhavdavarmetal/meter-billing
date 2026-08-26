@@ -94,6 +94,10 @@ function TenantForm() {
   const [ownerWhatsapp, setOwnerWhatsapp] = useState(null);
   const [showChart, setShowChart] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [movingOut, setMovingOut] = useState(false);
+  const [finalSubmitted, setFinalSubmitted] = useState(false);
+  const [finalReading, setFinalReading] = useState(null);
+  const [settlement, setSettlement] = useState(null);
   const [theme, setTheme] = useState("dark"); // dark by default
 
   useEffect(() => {
@@ -122,6 +126,10 @@ function TenantForm() {
           if (d && d.reminder) setReminder(d.reminder);
           if (d && d.contacts) setContacts(d.contacts);
           if (d && d.ownerWhatsapp) setOwnerWhatsapp(d.ownerWhatsapp);
+          if (d && d.movingOut) setMovingOut(true);
+          if (d && d.finalSubmitted) setFinalSubmitted(true);
+          if (d && d.finalReading != null) setFinalReading(d.finalReading);
+          if (d && d.settlement) setSettlement(d.settlement);
           if (d && d.active === false) { setStage("inactive"); return; }
           if (d && d.submitted) { setLockedInfo({ reading: d.reading, submittedAt: d.submittedAt }); setStage("locked"); }
         })
@@ -186,10 +194,11 @@ function TenantForm() {
     setShowConfirm(false);
     setSubmitting(true);
     try {
+      const isFinal = movingOut && !finalSubmitted;
       const res = await fetch("/api/readings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, reading, imageBase64: photo, mediaType, isStart: awaitingStart }),
+        body: JSON.stringify({ slug, reading, imageBase64: photo, mediaType, isStart: awaitingStart, isFinal }),
       });
       if (res.status === 409) {
         const d = await res.json().catch(() => ({}));
@@ -200,6 +209,7 @@ function TenantForm() {
       if (res.status === 403) { setStage("inactive"); return; }
       if (res.status === 413) { setErr("The photo is too large. Please retake it a bit further back, or try again."); return; }
       if (!res.ok) throw new Error();
+      if (isFinal) { setFinalReading(reading); setFinalSubmitted(true); }
       setStage("done");
     } catch {
       setErr("Could not submit — please check your connection and try again.");
@@ -251,6 +261,100 @@ function TenantForm() {
     </div>
   );
 
+  const inr = (n) => `₹${Math.round(Math.abs(Number(n) || 0)).toLocaleString("en-IN")}`;
+
+  // Owner-prepared final settlement, shown to the tenant.
+  const SettlementCard = () => {
+    if (!settlement) return null;
+    const refund = settlement.net < 0;
+    const rows = [];
+    if (settlement.electricity) rows.push([`Electricity${settlement.units ? ` · ${settlement.units} units` : ""}`, inr(settlement.electricity), "var(--fg)"]);
+    if (settlement.rentAdj) rows.push([settlement.rentAdj < 0 ? "Rent refund" : "Rent", (settlement.rentAdj < 0 ? "−" : "") + inr(settlement.rentAdj), settlement.rentAdj < 0 ? "var(--good)" : "var(--fg)"]);
+    if (settlement.misc) rows.push(["Misc", inr(settlement.misc), "var(--fg)"]);
+    if (settlement.deposit) {
+      rows.push(["Deposit held", inr(settlement.deposit), "var(--fg)"]);
+      if (settlement.deposit - settlement.depositRefund > 0) rows.push(["Deductions", "−" + inr(settlement.deposit - settlement.depositRefund), "var(--warn)"]);
+      rows.push(["Deposit refund", inr(settlement.depositRefund), "var(--good)"]);
+    }
+    return (
+      <div style={dashCard}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={cardLabel}>Final settlement</div>
+          <span style={pill(refund ? "good" : "warn")}>{refund ? "Refund" : "To pay"}</span>
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: 30, fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1, marginTop: 6, color: refund ? "var(--good)" : "var(--fg)" }}>{inr(settlement.net)}</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>{refund ? "Refundable to you" : "Payable by you"}{settlement.moveOut ? ` · move-out ${settlement.moveOut}` : ""}</div>
+        {rows.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--hair)" }}>
+            {rows.map((r, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: "var(--sec)" }}>{r[0]}</span>
+                <span style={{ fontFamily: MONO, color: r[2] }}>{r[1]}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, lineHeight: 1.5 }}>Prepared by your owner. Reach out if anything needs correcting.</div>
+      </div>
+    );
+  };
+
+  // Move-out: final reading entry → awaiting settlement → settlement.
+  const MoveOutCard = () => {
+    if (settlement) return SettlementCard();
+    if (finalSubmitted) {
+      return (
+        <div style={dashCard}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={cardLabel}>Final meter reading</div>
+            <span style={pill("good")}>Submitted</span>
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 34, fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1, marginTop: 8 }}>{finalReading != null ? finalReading : "—"}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>Your final reading is sent. Your owner will prepare your final settlement and share it here.</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "11px 13px", border: "1px solid var(--hair)", borderRadius: 8, background: "var(--field)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sec)" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l2.5 2"></path></svg>
+            <span style={{ fontSize: 13, color: "var(--sec)" }}>Awaiting final settlement from owner</span>
+          </div>
+        </div>
+      );
+    }
+    // Final reading entry (unlocked on move-out day)
+    return (
+      <>
+        <div style={{ border: "1px solid var(--warn-line)", borderRadius: 12, background: "var(--warn-bg)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={pill("warn")}>Moving out</span><span style={{ fontSize: 13, fontWeight: 600, color: "var(--warn-fg)" }}>Final reading needed</span></div>
+          <div style={{ fontSize: 13, color: "var(--warn-fg)", lineHeight: 1.55 }}>Submit your <strong>final</strong> meter reading on your last day. This closes your account and lets your owner prepare the settlement.</div>
+        </div>
+        <div style={dashCard}>
+          <div style={cardLabel}>Final meter reading · move-out day</div>
+          {previousReading != null && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--field)", margin: "12px 0" }}>
+              <span style={{ fontSize: 13, color: "var(--sec)" }}>Previous reading</span>
+              <span style={{ fontFamily: MONO, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--fg)" }}>{previousReading}</span>
+            </div>
+          )}
+          <label style={bigBtn}>
+            <IconCamera /> {photo ? "Retake photo" : "Take a photo of your meter"}
+            <input type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
+          </label>
+          {preview && <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 10, margin: "14px 0", border: "1px solid var(--line)" }} />}
+          {stage === "confirm" && (
+            <div>
+              <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Please type the final number shown on your meter.</p>
+              <label style={fieldLabel}>Final meter number</label>
+              <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 8720" />
+              {err && <p style={{ color: "#e5484d", fontSize: 14 }}>{err}</p>}
+              <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid color-mix(in srgb, var(--primary-fg) 40%, transparent)", borderTopColor: "var(--primary-fg)", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit final reading"}
+              </button>
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5 }}>Take this on your actual move-out day so the final bill is accurate.</div>
+        </div>
+      </>
+    );
+  };
+
   // Skeleton loading — real labels shown, only the data shimmers.
   if (!loaded) {
     const Sk = ({ w, h, mt }) => (
@@ -291,6 +395,25 @@ function TenantForm() {
   }
 
   if (stage === "inactive") {
+    // A settled move-out gets a warm close rather than a bare "inactive" message.
+    if (settlement) {
+      return (
+        <Shell>
+          <div style={{ maxWidth: 440, margin: "0 auto", padding: "16px" }}>
+            <div style={dashCard}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 13 5 5L19 7"></path></svg>
+                <h1 style={{ ...h1, margin: 0 }}>Move-out complete</h1>
+              </div>
+              <p style={{ color: "var(--sec)", lineHeight: 1.55, marginTop: 10 }}>
+                Your account is settled and this link is now closed. Thank you for staying{propertyName ? ` at ${propertyName}` : ""} — we wish you all the best.
+              </p>
+            </div>
+            {SettlementCard()}
+          </div>
+        </Shell>
+      );
+    }
     return (
       <Shell>
         <div style={{ maxWidth: 440, margin: "0 auto", padding: "16px" }}>
@@ -497,7 +620,9 @@ function TenantForm() {
     <Shell>
       <div className="tpage">
         <div>
-          {settlingIn ? (
+          {movingOut ? (
+            <>{MoveOutCard()}</>
+          ) : settlingIn ? (
             <>{MeterCard()}</>
           ) : (
             <>
@@ -521,10 +646,12 @@ function TenantForm() {
       {showConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: 22, maxWidth: 340, width: "100%", textAlign: "left", color: "var(--fg)" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
+            <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : movingOut ? `Submit final reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
             <p style={{ fontSize: 14, color: "var(--sec)", margin: "0 0 18px", lineHeight: 1.5 }}>
               {awaitingStart
                 ? <>This will be saved as your <strong>starting meter reading</strong>. Please make sure it matches your meter today.</>
+                : movingOut
+                ? <>This is your <strong>final reading</strong> for move-out. Your owner will prepare the settlement from it. Please make sure it matches your meter today.</>
                 : <>Once submitted, you <strong>cannot submit again</strong> for {billingMonthLabel()} unless the owner unlocks it. Please make sure your reading is correct.</>}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
