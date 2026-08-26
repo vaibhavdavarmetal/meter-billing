@@ -91,9 +91,27 @@ export async function POST(req) {
       for (const p of Object.values(reg)) {
         if (!Array.isArray(p.tenants)) continue;
         const t = p.tenants.find((x) => x.slug === body.slug);
-        if (t) { t.active = false; done = true; break; }
+        if (t) { t.active = false; t.movingOut = false; done = true; break; }
       }
       if (!done) return Response.json({ error: "Tenant not found" }, { status: 404 });
+      await saveRegistry(reg);
+      return Response.json({ ok: true });
+    }
+
+    // Owner flips a tenant into (or out of) move-out mode. Unlocks their app to submit a
+    // final reading; no settlement data is entered here.
+    if (body.action === "start-moveout" || body.action === "cancel-moveout") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      const reg = (await getRegistry()) || props;
+      let done = false;
+      for (const p of Object.values(reg)) {
+        if (!Array.isArray(p.tenants)) continue;
+        const t = p.tenants.find((x) => x.slug === body.slug);
+        if (t) { t.movingOut = body.action === "start-moveout"; done = true; break; }
+      }
+      if (!done) return Response.json({ error: "Tenant not found" }, { status: 404 });
+      // Starting fresh clears any stale final reading from a previous attempt.
+      if (body.action === "start-moveout") await saveReading("final", body.slug, { slug: body.slug, isFinalPending: false });
       await saveRegistry(reg);
       return Response.json({ ok: true });
     }
@@ -165,6 +183,22 @@ export async function POST(req) {
         return Response.json({ ok: true, start: true, reading: Number(reading) });
       }
       // already has a baseline — fall through to normal handling
+    }
+
+    // Move-out: the tenant's FINAL reading on their last day. Saved separately (keyed "final")
+    // so it bypasses the monthly lock; the owner settles from it in the console.
+    if (body.isFinal && found.tenant.movingOut) {
+      let finalPhotoUrl = null;
+      if (imageBase64 && process.env.BLOB_READ_WRITE_TOKEN) {
+        const buf = Buffer.from(imageBase64, "base64");
+        const blob = await put(`meters/final/${slug}.jpg`, buf, { access: "public", contentType: mediaType || "image/jpeg", addRandomSuffix: true });
+        finalPhotoUrl = blob.url;
+      }
+      await saveReading("final", slug, {
+        slug, reading: Number(reading), photoUrl: finalPhotoUrl,
+        isFinalPending: true, submittedAt: new Date().toISOString(),
+      });
+      return Response.json({ ok: true, final: true, reading: Number(reading) });
     }
 
     // Lock: if already submitted for this month and not unlocked, reject.

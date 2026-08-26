@@ -1,5 +1,5 @@
 import { liveProperties, findTenantIn } from "../../../lib/registry";
-import { getReading, getBillsForPeriods } from "../../../lib/store";
+import { getReading, getBillsForPeriods, getSettlement } from "../../../lib/store";
 import { OWNER_WHATSAPP } from "../../../lib/config";
 
 export const runtime = "nodejs";
@@ -104,6 +104,29 @@ export async function GET(req) {
   // Maintenance contacts for this tenant's property (managed in admin).
   const contacts = (found.property.contacts || []).filter((c) => c && c.name && c.phone);
 
+  // Move-out: owner flags the tenant, tenant submits a final reading, owner settles.
+  const movingOut = active && found.tenant.movingOut === true;
+  const [finalRec, settlementRec] = await Promise.all([
+    getReading("final", slug),
+    getSettlement(slug),
+  ]);
+  const finalSubmitted = movingOut && !!(finalRec && finalRec.isFinalPending);
+  const finalReading = finalRec && finalRec.isFinalPending ? finalRec.reading : null;
+  let settlement = null;
+  if (settlementRec && settlementRec.net != null) {
+    settlement = {
+      net: settlementRec.net,
+      electricity: settlementRec.electricity || 0,
+      units: settlementRec.units || 0,
+      rentAdj: settlementRec.rentAdj || 0,
+      misc: settlementRec.misc || 0,
+      deposit: settlementRec.deposit || 0,
+      depositRefund: settlementRec.depositRefund || 0,
+      moveOut: settlementRec.moveOut || null,
+      savedAt: settlementRec.savedAt || null,
+    };
+  }
+
   // Month-start reminder: if there's no finalized bill for THIS month yet, look at the most
   // recent finalized bill to carry forward any over/under adjustment (credit or shortfall).
   let reminder = null;
@@ -143,6 +166,10 @@ export async function GET(req) {
     dues,              // finalized dues for this month, or null
     reminder,          // month-start reminder (rent due + carried adjustment) when no bill yet
     contacts,          // [{label,name,phone}] for maintenance card
+    movingOut,         // true = owner started move-out; app unlocks a final reading
+    finalSubmitted,    // true = tenant submitted the final reading, awaiting settlement
+    finalReading,      // the submitted final reading value
+    settlement,        // owner-prepared final settlement summary, or null
     ownerWhatsapp: OWNER_WHATSAPP && !OWNER_WHATSAPP.includes("X") ? OWNER_WHATSAPP : null,
   });
 }

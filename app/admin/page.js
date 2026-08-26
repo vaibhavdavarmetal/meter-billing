@@ -42,6 +42,15 @@ export default function Admin(){
   const [reportBusy,setReportBusy]=useState(false);
   const [pendingStarts,setPendingStarts]=useState([]);
   const [startVals,setStartVals]=useState({});
+  // Move-out (tenant-initiated)
+  const [openMenu,setOpenMenu]=useState(null);           // slug whose ⋯ menu is open
+  const [confirmMoveOut,setConfirmMoveOut]=useState(null); // {slug,name} pending confirm
+  const [moveouts,setMoveouts]=useState([]);             // move-out requests
+  const [settleSlug,setSettleSlug]=useState(null);
+  const [settleInfo,setSettleInfo]=useState(null);
+  const [settle,setSettle]=useState({moveOut:"",finalReading:"",rentAdj:"",misc:"",miscNote:"",deposit:"",carry:"",deductions:[]});
+  const [settleMsg,setSettleMsg]=useState("");
+  const [settleBusy,setSettleBusy]=useState(false);
 
   // Build a bill record for one tenant (used by manual save AND mark-paid auto-save)
   const buildBill=(pkey,prop,t,paidOverride)=>{
@@ -131,7 +140,7 @@ export default function Admin(){
     }catch{ setErr("Could not load."); setLoading(false); return false; }
   },[]);
 
-  const login=async()=>{ const ok=await fetchPeriod(period,pw); if(ok) setAuthed(true); };
+  const login=async()=>{ const ok=await fetchPeriod(period,pw); if(ok){ setAuthed(true); loadMoveouts(pw); } };
   const changeMonth=async(d)=>{ const p=shiftPeriod(period,d); setPeriod(p); await fetchPeriod(p,pw); };
 
   const loadRegistry=async()=>{
@@ -203,6 +212,57 @@ export default function Admin(){
     }catch{ setStaffMsg("Could not load house help."); }
   };
   const openStaff=async()=>{ setView("staff"); await loadStaff(); };
+
+  // ── Move-out (tenant-initiated) ──
+  const loadMoveouts=async(password=pw)=>{
+    try{ const r=await fetch(`/api/settlement?moveouts=1&pw=${encodeURIComponent(password)}`); if(!r.ok) return; const d=await r.json(); setMoveouts(d.moveouts||[]); }catch{}
+  };
+  const startMoveOut=async(slug)=>{
+    setConfirmMoveOut(null); setOpenMenu(null);
+    try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start-moveout",pw,slug})}); }catch{}
+    await loadMoveouts();
+  };
+  const cancelMoveOut=async(slug)=>{
+    try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"cancel-moveout",pw,slug})}); }catch{}
+    await loadMoveouts();
+  };
+  const openSettlement=async(slug)=>{
+    setView("settlement"); setSettleSlug(slug); setSettleMsg(""); setSettleInfo(null);
+    try{
+      const r=await fetch(`/api/settlement?t=${encodeURIComponent(slug)}&pw=${encodeURIComponent(pw)}`);
+      if(!r.ok){ setSettleMsg("Could not load tenant."); return; }
+      const d=await r.json(); setSettleInfo(d);
+      const st=d.settlement||{};
+      setSettle({
+        moveOut: st.moveOut||"",
+        finalReading: st.finalReading!=null?String(st.finalReading):(d.finalReading!=null?String(d.finalReading):(d.pendingReading!=null?String(d.pendingReading):"")),
+        rentAdj: st.rentAdj!=null?String(st.rentAdj):"",
+        misc: st.misc!=null?String(st.misc):"",
+        miscNote: st.miscNote||"",
+        deposit: st.deposit!=null?String(st.deposit):(d.rent?String(d.rent):""),
+        carry: st.carry!=null?String(st.carry):"",
+        deductions: st.deductions||[],
+      });
+    }catch{ setSettleMsg("Could not load tenant."); }
+  };
+  const setSF=(f,v)=> setSettle(p=>({...p,[f]:v}));
+
+  // ⋯ per-tenant actions menu (currently: Start move-out, with confirmation)
+  const MoreMenu=({slug,name})=>(
+    <div style={{position:"relative"}}>
+      <button onClick={(e)=>{ e.stopPropagation(); setOpenMenu(openMenu===slug?null:slug); }} aria-label="More actions" style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--muted)",borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+      </button>
+      {openMenu===slug&&(
+        <div style={{position:"absolute",right:0,top:36,zIndex:30,minWidth:180,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,boxShadow:"var(--shadow)",overflow:"hidden"}} onClick={(e)=>e.stopPropagation()}>
+          <button onClick={()=>{ setOpenMenu(null); setConfirmMoveOut({slug,name}); }} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",padding:"11px 13px",background:"transparent",border:"none",color:"var(--ink)",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            Start move-out
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const setStaffField=(id,f,v)=> setStaffEntries(p=>({...p,[id]:{...p[id],[f]:v}}));
 
@@ -378,7 +438,7 @@ export default function Admin(){
     return (
       <div>
         <p style={{fontSize:13,color:"var(--muted)"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
-        <a href="/admin/close-out" style={{display:"block",textAlign:"center",background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",borderRadius:11,padding:"11px",fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:4}}>→ Close out a tenant (final settlement)</a>
+        <p style={{fontSize:13,color:"var(--muted)"}}>To move a tenant out, open their <strong style={{color:"var(--ink)"}}>⋯ menu on the Billing tab → Start move-out</strong>. They submit a final reading and you settle it there.</p>
         {pendingStarts.length>0&&(
           <div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:14,padding:14,marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Move-in readings to verify</div>
@@ -506,6 +566,24 @@ export default function Admin(){
     return (
     <>
       {loading&&<p style={{color:"var(--muted)"}}>Loading {label(period)}…</p>}
+
+      {moveouts.length>0&&moveouts.map((mo)=>(
+        <div key={mo.slug} style={{border:"1px solid var(--warn-line)",borderRadius:12,background:"var(--warn-bg)",padding:14,marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            <div style={{fontSize:14,fontWeight:600,color:"var(--ink)"}}>{mo.name} {mo.finalSubmitted?"wants to move out":"is moving out"}</div>
+          </div>
+          <div style={{fontSize:13,color:"var(--accent)",lineHeight:1.5}}>
+            {mo.finalSubmitted
+              ? <>Final reading <b>{mo.finalReading}</b> submitted{mo.submittedAt?` on ${new Date(mo.submittedAt).toLocaleDateString("en-IN")}`:""}. Settle here — no separate sign-in.</>
+              : <>Move-out started. Waiting for {mo.name} to submit their final reading on move-out day.</>}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {mo.finalSubmitted&&<button onClick={()=>openSettlement(mo.slug)} style={{...btn,background:"var(--ink)",color:"var(--paper)",width:"auto",padding:"10px 16px",marginTop:0}}>Start settlement</button>}
+            <button onClick={()=>cancelMoveOut(mo.slug)} style={{...btn,background:"var(--card)",color:"var(--muted)",border:"1px solid var(--line)",width:"auto",padding:"10px 14px",marginTop:0}}>Cancel move-out</button>
+          </div>
+        </div>
+      ))}
       {data&&Object.entries(data.properties).map(([pkey,prop])=>(
         <div key={pkey} style={{marginTop:20}}>
           <h2 style={{fontSize:17,display:"flex",alignItems:"center",gap:8}}>
@@ -537,9 +615,12 @@ export default function Admin(){
             if(saved && ex.paid){
               return (
                 <div key={t.slug} style={{...card,borderColor:"var(--good-line)"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                     <strong>{t.name}</strong>
-                    <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
+                      {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name}/>}
+                    </div>
                   </div>
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
                   <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
@@ -558,10 +639,13 @@ export default function Admin(){
 
             return (
               <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"var(--accent)":"var(--line)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                   <strong>{t.name}</strong>
-                  {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
-                    :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
+                      :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
+                    {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name}/>}
+                  </div>
                 </div>
                 {isApproved&&<div style={{fontSize:12,color:"var(--good)",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
                 {t.active===false&&<div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
@@ -691,6 +775,107 @@ export default function Admin(){
     );
   };
 
+  // ── In-console move-out settlement (no separate login) ──
+  const renderSettlement=()=>{
+    const d=settleInfo;
+    const rate=d?d.rate:9;
+    const prev=d?d.lastReading:null;
+    const fr=settle.finalReading!==""?Number(settle.finalReading):null;
+    const units=(fr!=null&&prev!=null)?Math.max(0,fr-prev):0;
+    const elec=units*rate;
+    const rentN=settle.rentAdj!==""?Number(settle.rentAdj):0;
+    const miscN=settle.misc!==""?Number(settle.misc):0;
+    const depN=settle.deposit!==""?Number(settle.deposit):0;
+    const dedT=settle.deductions.reduce((s,x)=>s+(Number(x.amount)||0),0);
+    const depRefund=Math.max(0,depN-dedT);
+    const carryN=settle.carry!==""?Number(settle.carry):0;
+    const charges=elec+Math.max(0,rentN)+miscN+Math.max(0,carryN);
+    const credits=depRefund+Math.max(0,-rentN)+Math.max(0,-carryN);
+    const net=charges-credits; // +ve tenant pays, -ve you refund
+    const settlementObj=()=>({moveOut:settle.moveOut,finalReading:fr,prevReading:prev,units,rate,electricity:elec,rentAdj:rentN,misc:miscN,miscNote:settle.miscNote,deposit:depN,deductions:settle.deductions,depositRefund:depRefund,carry:carryN,net});
+    const saveSettlement=async()=>{
+      setSettleBusy(true); setSettleMsg("");
+      try{ const r=await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save-settlement",pw,slug:settleSlug,settlement:settlementObj()})}); if(!r.ok) throw new Error(); setSettleMsg("Settlement saved and shared to the tenant."); }
+      catch{ setSettleMsg("Could not save."); } finally{ setSettleBusy(false); }
+    };
+    const waSettlement=()=>{
+      if(!d) return; const L=[]; L.push(`*Final settlement — ${d.name}*`); if(d.propertyName) L.push(d.propertyName);
+      if(settle.moveOut) L.push(`Move-out: ${settle.moveOut}`); L.push("");
+      if(units>0) L.push(`Electricity: ${units} units × ₹${rate} = ${money(elec)}`);
+      if(rentN>0) L.push(`Rent: ${money(rentN)}`); if(rentN<0) L.push(`Rent refund: ${money(-rentN)}`);
+      if(miscN) L.push(`Misc${settle.miscNote?` (${settle.miscNote})`:""}: ${money(miscN)}`);
+      if(carryN) L.push(`${carryN>0?"Previous balance":"Previous credit"}: ${money(Math.abs(carryN))}`);
+      if(depN){ L.push(""); L.push(`Deposit held: ${money(depN)}`); settle.deductions.forEach(x=>{ if(Number(x.amount)) L.push(`  − ${money(Number(x.amount))}${x.note?` (${x.note})`:""}`); }); L.push(`Deposit refund: ${money(depRefund)}`); }
+      L.push(""); L.push(net>=0?`*Amount payable by you: ${money(net)}*`:`*Amount refundable to you: ${money(-net)}*`);
+      let ph=null;
+      if(data&&data.properties){ for(const p of Object.values(data.properties)){ const t=(p.tenants||[]).find(x=>x.slug===settleSlug); if(t){ ph=t.phone; break; } } }
+      window.open(waUrl(ph,L.join("\n")),"_blank");
+    };
+    const finishMoveOut=async()=>{
+      if(!window.confirm("Deactivate this tenant's link? Do this only once the settlement is fully paid/refunded. Their history stays saved.")) return;
+      setSettleBusy(true);
+      try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"deactivate-tenant",pw,slug:settleSlug})}); setSettleMsg("Move-out complete — link deactivated."); await loadMoveouts(); }
+      catch{ setSettleMsg("Could not deactivate."); } finally{ setSettleBusy(false); }
+    };
+    return (
+      <div>
+        <button onClick={()=>{ setView("billing"); }} style={{background:"transparent",border:"none",color:"var(--slate)",fontSize:13,fontWeight:600,cursor:"pointer",padding:0,marginBottom:10}}>‹ Back to billing</button>
+        {!d?<p style={{color:"var(--muted)"}}>{settleMsg||"Loading tenant…"}</p>:(
+        <div style={{...card,marginTop:0}}>
+          <div style={{fontSize:12,color:"var(--muted)"}}>{d.propertyName} · rate ₹{rate}/unit · monthly rent {money(d.rent)}</div>
+          <h2 style={{fontSize:18,fontWeight:600,letterSpacing:"-0.014em",margin:"6px 0 0"}}>Final settlement · {d.name}</h2>
+          {d.finalReading!=null&&<div style={{...flagBox,marginTop:10}}>Tenant submitted final reading <b>{d.finalReading}</b>{d.finalPhotoUrl?" (photo attached)":""} — prefilled below.</div>}
+          {d.finalPhotoUrl&&<img src={d.finalPhotoUrl} alt="final meter" onClick={()=>setPhotoView(d.finalPhotoUrl)} style={{width:"100%",maxHeight:220,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",marginTop:8,cursor:"zoom-in"}}/>}
+
+          <label style={lbl}>Move-out date (last day)</label>
+          <input type="date" value={settle.moveOut} onChange={e=>setSF("moveOut",e.target.value)} style={inp}/>
+
+          <label style={lbl}>Final meter reading</label>
+          <input inputMode="numeric" value={settle.finalReading} onChange={e=>setSF("finalReading",e.target.value.replace(/[^0-9.]/g,""))} style={inp} placeholder="e.g. 8720"/>
+          {prev!=null&&<div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>Previous: <b>{prev}</b> → units: <b>{units}</b> → electricity: <b>{money(elec)}</b></div>}
+
+          <label style={lbl}>Final rent adjustment (₹) — negative = refund</label>
+          <input value={settle.rentAdj} onChange={e=>setSF("rentAdj",e.target.value.replace(/[^0-9.\-]/g,""))} style={inp} placeholder="e.g. -4000 (refund) or 3000 (owed)"/>
+
+          <label style={lbl}>Misc charge (₹)</label>
+          <input inputMode="numeric" value={settle.misc} onChange={e=>setSF("misc",e.target.value.replace(/[^0-9.]/g,""))} style={inp} placeholder="0"/>
+          {settle.misc!==""&&Number(settle.misc)>0&&<input value={settle.miscNote} onChange={e=>setSF("miscNote",e.target.value)} style={{...inp,marginTop:6}} placeholder="Misc note (optional)"/>}
+
+          <label style={lbl}>Previous balance (₹) — +they owe / −credit</label>
+          <input value={settle.carry} onChange={e=>setSF("carry",e.target.value.replace(/[^0-9.\-]/g,""))} style={inp} placeholder="0"/>
+
+          <label style={lbl}>Security deposit held (₹)</label>
+          <input inputMode="numeric" value={settle.deposit} onChange={e=>setSF("deposit",e.target.value.replace(/[^0-9.]/g,""))} style={inp} placeholder="e.g. 15000"/>
+          {settle.deposit!==""&&Number(settle.deposit)>0&&(
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5}}>Deductions from deposit</div>
+              {settle.deductions.map((x,i)=>(
+                <div key={i} style={{display:"flex",gap:6,marginTop:6}}>
+                  <input inputMode="numeric" value={x.amount} onChange={e=>{ const n=[...settle.deductions]; n[i]={...n[i],amount:e.target.value.replace(/[^0-9.]/g,"")}; setSF("deductions",n); }} style={{...inpSm,width:90}} placeholder="₹"/>
+                  <input value={x.note} onChange={e=>{ const n=[...settle.deductions]; n[i]={...n[i],note:e.target.value}; setSF("deductions",n); }} style={{...inpSm,flex:1}} placeholder="Reason (e.g. repainting)"/>
+                  <button onClick={()=>setSF("deductions",settle.deductions.filter((_,j)=>j!==i))} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 10px",cursor:"pointer"}}>✕</button>
+                </div>
+              ))}
+              <button onClick={()=>setSF("deductions",[...settle.deductions,{amount:"",note:""}])} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:6,padding:9}}>+ Add deduction</button>
+              <div style={{fontSize:12,color:"var(--muted)",marginTop:6}}>Deductions: {money(dedT)} → deposit refund: <b>{money(depRefund)}</b></div>
+            </div>
+          )}
+
+          <div style={{marginTop:16,padding:14,borderRadius:12,border:"1px solid var(--line)",background:net>=0?"var(--warn-bg)":"var(--good-bg)"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5}}>Settlement</div>
+            <div style={{fontSize:22,fontWeight:600,marginTop:4,color:net>=0?"var(--accent)":"var(--good)"}}>{net>=0?`Tenant pays ${money(net)}`:`You refund ${money(-net)}`}</div>
+          </div>
+
+          {settleMsg&&<p style={{color:"var(--good)",fontSize:13,marginTop:10}}>{settleMsg}</p>}
+          <button onClick={saveSettlement} disabled={settleBusy} style={{...btn,background:"var(--ink)",color:"var(--paper)"}}>{settleBusy?"Saving…":"Save & share settlement"}</button>
+          <button onClick={waSettlement} style={{...btn,background:"#25D366",color:"#fff"}}>Send to tenant on WhatsApp</button>
+          <button onClick={finishMoveOut} disabled={settleBusy} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)"}}>Deactivate link — complete move-out</button>
+        </div>
+        )}
+      </div>
+    );
+  };
+
   const themeVars = theme==="dark"
     ? { "--paper":"#0a0a0a","--card":"#111111","--elev":"#161616","--ink":"#ededed","--muted":"#a1a1a1","--faint":"#737373","--line":"#262626","--hair":"#1f1f1f","--field":"#0d0d0d","--slate":"#6aa8ff","--accent":"#e5a13a","--good":"#4cc38a","--good-bg":"#0e1f16","--good-line":"#1d4030","--warn-bg":"#211803","--warn-line":"#433310","--accent-weak":"#0d1220","--primary-bg":"#ffffff","--primary-fg":"#0a0a0a","--shadow":"0 1px 2px rgba(0,0,0,0.4)" }
     : { "--paper":"#fafafa","--card":"#ffffff","--elev":"#f6f6f6","--ink":"#0a0a0a","--muted":"#666666","--faint":"#8f8f8f","--line":"#eaeaea","--hair":"#f2f2f2","--field":"#fafafa","--slate":"#0068d6","--accent":"#b45309","--good":"#0f7b34","--good-bg":"#edf7f0","--good-line":"#c6e5cf","--warn-bg":"#fff8eb","--warn-line":"#f5e0b3","--accent-weak":"#f4f9ff","--primary-bg":"#0a0a0a","--primary-fg":"#ffffff","--shadow":"0 1px 2px rgba(0,0,0,0.04)" };
@@ -813,7 +998,7 @@ export default function Admin(){
 
         <div className="maincol">
           <div className="topbar">
-            <h1 style={{fontSize:16,fontWeight:600,letterSpacing:"-0.014em",margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Tenants":"House help"}</h1>
+            <h1 style={{fontSize:16,fontWeight:600,letterSpacing:"-0.014em",margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Tenants":view==="settlement"?"Move-out":"House help"}</h1>
             {(view==="billing"||view==="staff")&&<MonthStepper/>}
             <div style={{flex:1}}/>
             <ThemeBtn/>
@@ -821,7 +1006,7 @@ export default function Admin(){
 
           <div className="content">
             <div className="contentmain">
-              {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
+              {view==="settlement"?renderSettlement():view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
             </div>
             {view==="billing"&&data&&(
               <aside className="rail">
@@ -899,6 +1084,23 @@ export default function Admin(){
                   setData(prev=>prev?{...prev,bills:{...prev.bills,[slug]:bill}}:prev);
                   persistExtra(slug);
                 }} style={{...btn,background:"var(--accent)",color:"#fff",marginTop:0}}>Mark unpaid</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Click-away to close the ⋯ menu */}
+        {openMenu&&<div onClick={()=>setOpenMenu(null)} style={{position:"fixed",inset:0,zIndex:20}}/>}
+
+        {/* Start move-out confirmation */}
+        {confirmMoveOut&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}} onClick={()=>setConfirmMoveOut(null)}>
+            <div style={{background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",borderRadius:14,padding:22,maxWidth:360,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:600,letterSpacing:"-0.014em"}}>Start move-out for {confirmMoveOut.name}?</h3>
+              <p style={{fontSize:14,color:"var(--muted)",margin:"0 0 18px",lineHeight:1.5}}>Their app will unlock a <strong>final reading</strong> to submit on move-out day. Monthly billing pauses. You can cancel this before they submit.</p>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setConfirmMoveOut(null)} style={{...btn,background:"var(--card)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0}}>Cancel</button>
+                <button onClick={()=>startMoveOut(confirmMoveOut.slug)} style={{...btn,background:"var(--accent)",color:"#fff",marginTop:0}}>Start move-out</button>
               </div>
             </div>
           </div>

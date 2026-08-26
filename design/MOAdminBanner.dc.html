@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #6aa8ff; text-decoration: none; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width:390px;height:330px;background:#0a0a0a;color:#ededed;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#0a0a0a;border-bottom:1px solid #262626;">
+    <div style="width:28px;height:28px;border-radius:7px;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg></div>
+    <div style="flex-grow:1;font-size:15px;font-weight:600;letter-spacing:-0.014em;color:#ededed;">Billing</div>
+    <img src="admin-logo.jpg" alt="" style="width:28px;height:28px;border-radius:999px;object-fit:cover;border:1px solid #262626;">
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+    <div style="border:1px solid #433310;border-radius:12px;background:#1a1204;padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e5a13a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg><div style="font-size:15px;font-weight:600;color:#ededed;">First Floor wants to move out</div></div>
+      <div style="font-size:13px;color:#e0b072;line-height:1.55;">Final reading <span style="font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;color:#f2c98a;">8,720</span> submitted on 20 Aug 2026 · 166 units since last bill.</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;border-radius:8px;background:#ffffff;color:#0a0a0a;font-size:14px;font-weight:500;">Start settlement<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"></path><path d="m12 5 7 7-7 7"></path></svg></div>
+    </div>
+    <div style="font-size:12px;color:#737373;line-height:1.5;padding:0 2px;">Opens the settlement here in your console — no separate sign-in. Prefilled with their final reading.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

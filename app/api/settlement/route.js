@@ -30,6 +30,24 @@ export async function GET(req) {
     return Response.json({ pending });
   }
 
+  // Move-out requests: tenants flagged movingOut who have submitted a final reading.
+  if (searchParams.get("moveouts") === "1") {
+    const tenants = allTenantsFrom(props);
+    const moveouts = [];
+    for (const t of tenants) {
+      if (!t.movingOut) continue;
+      const f = await getReading("final", t.slug);
+      moveouts.push({
+        slug: t.slug, name: t.name, propertyName: t.propertyName || "",
+        finalReading: f && f.isFinalPending ? f.reading : null,
+        photoUrl: f && f.isFinalPending ? (f.photoUrl || null) : null,
+        submittedAt: f && f.isFinalPending ? f.submittedAt : null,
+        finalSubmitted: !!(f && f.isFinalPending),
+      });
+    }
+    return Response.json({ moveouts });
+  }
+
   const slug = searchParams.get("t");
   if (!slug) return Response.json({ error: "Missing tenant" }, { status: 400 });
 
@@ -39,7 +57,11 @@ export async function GET(req) {
   const period = currentPeriod();
   const lastBill = await getLatestBillBefore(period, slug);
   const reading = await getReading(period, slug);
+  const finalRec = await getReading("final", slug);
   const settlement = await getSettlement(slug);
+
+  // Prefer the tenant's submitted final reading when preparing a move-out settlement.
+  const finalReading = finalRec && finalRec.isFinalPending ? finalRec.reading : null;
 
   return Response.json({
     slug,
@@ -49,9 +71,12 @@ export async function GET(req) {
     rent: found.tenant.rent || 0,
     moveIn: found.tenant.moveIn || null,
     active: found.tenant.active !== false,
+    movingOut: !!found.tenant.movingOut,
     lastReading: lastBill && lastBill.currentReading != null ? lastBill.currentReading
       : (found.tenant.startReading != null ? Number(found.tenant.startReading) : null),
-    pendingReading: reading && reading.reading != null ? reading.reading : null,
+    finalReading,
+    finalPhotoUrl: finalRec && finalRec.isFinalPending ? (finalRec.photoUrl || null) : null,
+    pendingReading: finalReading != null ? finalReading : (reading && reading.reading != null ? reading.reading : null),
     settlement: settlement || null,
   });
 }

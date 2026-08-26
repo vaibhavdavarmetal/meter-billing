@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #6aa8ff; text-decoration: none; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width:390px;height:520px;background:#0a0a0a;color:#ededed;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#0a0a0a;border-bottom:1px solid #262626;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:#ffffff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg></div>
+      <div style="display:flex;flex-direction:column;gap:1px;"><div style="font-size:14px;font-weight:600;letter-spacing:-0.011em;color:#ededed;">First Floor</div><div style="font-size:12px;color:#737373;">Sector 57</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid #262626;border-radius:999px;background:#111111;font-size:12px;font-weight:500;color:#a1a1a1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"></path></svg>Light</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+    <div style="border:1px solid #262626;border-radius:12px;background:#111111;padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:12px;font-weight:500;color:#a1a1a1;">Starting meter reading</div>
+      <div style="font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;font-size:20px;color:#ededed;letter-spacing:-0.01em;">Submitted — awaiting owner confirmation</div>
+      <div style="font-size:13px;color:#737373;line-height:1.5;">Thanks! Your starting reading has been sent to the owner to verify. Once confirmed, you will submit your monthly readings here.</div>
+    </div>
+    <div style="border:1px solid #262626;border-radius:12px;background:#111111;padding:16px 16px 6px;display:flex;flex-direction:column;">
+      <div style="font-size:12px;font-weight:500;color:#a1a1a1;margin-bottom:4px;">Maintenance &amp; help</div>
+      <div style="display:flex;align-items:center;gap:12px;height:52px;border-bottom:1px solid #1f1f1f;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#161616;border:1px solid #262626;display:flex;align-items:center;justify-content:center;color:#a1a1a1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 4.5 5 5-2.5 2.5-5-5 2.5-2.5Z"></path><path d="m12 7-7 7v5h5l7-7"></path></svg></div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;gap:1px;"><div style="font-size:14px;font-weight:500;color:#ededed;">Plumber</div><div style="font-size:12px;color:#737373;">Ramesh</div></div>
+        <div style="display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid #262626;border-radius:6px;color:#ededed;font-size:13px;font-weight:500;">Call</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;height:52px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#161616;border:1px solid #262626;display:flex;align-items:center;justify-content:center;color:#a1a1a1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"></path></svg></div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;gap:1px;"><div style="font-size:14px;font-weight:500;color:#ededed;">Electrician</div><div style="font-size:12px;color:#737373;">Suresh</div></div>
+        <div style="display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid #262626;border-radius:6px;color:#ededed;font-size:13px;font-weight:500;">Call</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
