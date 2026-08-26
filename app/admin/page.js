@@ -758,13 +758,15 @@ export default function Admin(){
         .rail{ width:300px; flex-shrink:0; position:sticky; top:80px; }
         .navitem{ display:flex; align-items:center; gap:10px; height:34px; padding:0 10px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--muted); width:100%; text-align:left; }
         .navitem.active{ background:var(--elev); color:var(--ink); }
-        .mobtabs{ display:none; }
+        .bottomnav{ display:none; }
+        .navbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; border:none; background:transparent; color:var(--muted); font-size:11px; font-weight:500; cursor:pointer; border-radius:8px; }
+        .navbtn.active{ color:var(--ink); }
         @media (max-width: 899px){
           .console{ display:block; }
           .sidebar,.rail{ display:none; }
           .topbar{ position:static; min-height:auto; padding:14px 16px; flex-wrap:wrap; }
-          .content{ display:block; padding:16px; max-width:600px; margin:0 auto; }
-          .mobtabs{ display:flex; gap:8px; padding:12px 16px 0; max-width:600px; margin:0 auto; }
+          .content{ display:block; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); max-width:600px; margin:0 auto; }
+          .bottomnav{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; gap:4px; background:var(--card); border-top:1px solid var(--line); padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
         }
       `}</style>
       <div className="admin-wrap console">
@@ -817,12 +819,6 @@ export default function Admin(){
             <ThemeBtn/>
           </div>
 
-          <div className="mobtabs">
-            <button onClick={()=>setView("billing")} style={{...tabBtn,...(view==="billing"?tabActive:{})}}>Billing</button>
-            <button onClick={openManage} style={{...tabBtn,...(view==="manage"?tabActive:{})}}>Tenants</button>
-            <button onClick={openStaff} style={{...tabBtn,...(view==="staff"?tabActive:{})}}>House help</button>
-          </div>
-
           <div className="content">
             <div className="contentmain">
               {view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
@@ -863,6 +859,12 @@ export default function Admin(){
               </aside>
             )}
           </div>
+
+          <nav className="bottomnav">
+            <button className={"navbtn"+(view==="billing"?" active":"")} onClick={()=>setView("billing")}><NavIcon name="billing"/>Billing</button>
+            <button className={"navbtn"+(view==="manage"?" active":"")} onClick={openManage}><NavIcon name="manage"/>Tenants</button>
+            <button className={"navbtn"+(view==="staff"?" active":"")} onClick={openStaff}><NavIcon name="staff"/>House help</button>
+          </nav>
         </div>
 
         {/* Approve confirmation dialog */}
