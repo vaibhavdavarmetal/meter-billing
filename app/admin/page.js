@@ -252,18 +252,27 @@ export default function Admin(){
   };
   const setSF=(f,v)=> setSettle(p=>({...p,[f]:v}));
 
-  // ⋯ per-tenant actions menu (currently: Start move-out, with confirmation)
-  const MoreMenu=({slug,name})=>(
+  // ⋯ per-tenant actions menu: Start move-out (with confirmation); Remove (Tenants tab only)
+  const MoreMenu=({slug,name,onRemove})=>(
     <div style={{position:"relative"}}>
       <button onClick={(e)=>{ e.stopPropagation(); setOpenMenu(openMenu===slug?null:slug); }} aria-label="More actions" style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--muted)",borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
       </button>
       {openMenu===slug&&(
-        <div style={{position:"absolute",right:0,top:36,zIndex:30,minWidth:180,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,boxShadow:"var(--shadow)",overflow:"hidden"}} onClick={(e)=>e.stopPropagation()}>
+        <div style={{position:"absolute",right:0,top:36,zIndex:30,minWidth:190,background:"var(--card)",border:"1px solid var(--line)",borderRadius:10,boxShadow:"var(--shadow)",overflow:"hidden"}} onClick={(e)=>e.stopPropagation()}>
           <button onClick={()=>{ setOpenMenu(null); setConfirmMoveOut({slug,name}); }} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",padding:"11px 13px",background:"transparent",border:"none",color:"var(--ink)",fontSize:13,fontWeight:500,cursor:"pointer"}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
             Start move-out
           </button>
+          {onRemove&&(
+            <>
+              <div style={{height:1,background:"var(--line)"}}/>
+              <button onClick={()=>{ setOpenMenu(null); onRemove(); }} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",padding:"11px 13px",background:"transparent",border:"none",color:"#e5484d",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"></path></svg>
+                Remove tenant
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -479,7 +488,7 @@ export default function Admin(){
                     <span style={{fontSize:12,color:"var(--muted)"}}>{t.rent?`₹${Number(t.rent).toLocaleString("en-IN")}`:""}</span>
                     <span style={{fontSize:14,color:"var(--slate)",transform:expandedTenant[t.slug]?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
                   </button>
-                  {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name}/>}
+                  {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name} onRemove={()=>removeTen(pk,i)}/>}
                 </div>
                 {expandedTenant[t.slug]&&(
                 <div style={{padding:"0 12px 12px"}}>
@@ -496,7 +505,6 @@ export default function Admin(){
                   <div style={{flex:"1 1 100%"}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace"}}/></div>
                   <div style={{flex:"1 1 120px"}}><label style={lblSm}>Start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
                   <div style={{flex:"1 1 150px"}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
-                  {!prop.isTest&&<button onClick={()=>removeTen(pk,i)} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>}
                 </div>
                 {!prop.isTest&&(
                   <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"var(--slate)",cursor:"pointer"}}>
