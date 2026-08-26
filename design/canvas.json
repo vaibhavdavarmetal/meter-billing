@@ -15,6 +15,14 @@
     {
       "id": "cycle",
       "name": "Payment cycle"
+    },
+    {
+      "id": "movein",
+      "name": "Move-in"
+    },
+    {
+      "id": "moveout",
+      "name": "Move-out"
     }
   ],
   "artboards": [
@@ -188,6 +196,78 @@
       "y": 0,
       "w": 390,
       "h": 560
+    },
+    {
+      "file": "MoveInTenant1.dc.html",
+      "page": "movein",
+      "title": "Tenant \u00b7 Welcome (take photo)",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 430
+    },
+    {
+      "file": "MoveInTenant2.dc.html",
+      "page": "movein",
+      "title": "Tenant \u00b7 Submitted, awaiting owner",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 360
+    },
+    {
+      "file": "MoveInTenant3.dc.html",
+      "page": "movein",
+      "title": "Tenant \u00b7 Starting reading confirmed",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 340
+    },
+    {
+      "file": "MoveInAdmin1.dc.html",
+      "page": "movein",
+      "title": "Admin \u00b7 Add tenant & send link",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 470
+    },
+    {
+      "file": "MoveInAdmin2.dc.html",
+      "page": "movein",
+      "title": "Admin \u00b7 Verify move-in reading",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 520
+    },
+    {
+      "file": "MoveOutAdmin.dc.html",
+      "page": "moveout",
+      "title": "Admin \u00b7 Close-out settlement",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 620
+    },
+    {
+      "file": "MoveOutTenant1.dc.html",
+      "page": "moveout",
+      "title": "Tenant \u00b7 Final settlement",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 500
+    },
+    {
+      "file": "MoveOutTenant2.dc.html",
+      "page": "moveout",
+      "title": "Tenant \u00b7 Move-out complete",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 300
     }
   ],
   "annotations": [
@@ -230,10 +310,26 @@
       "y": -150,
       "w": 760,
       "text": "What the tenant sees across one month, left to right: a new month opens with the reading due; after they submit, it locks and waits for the owner; once the owner finalises, the bill shows as Pending payment; when the owner marks it received, it reads Paid. These are the live app states (dark, the default) \u2014 the account and meter cards already render them from the owner's actions."
+    },
+    {
+      "id": "movein-note",
+      "page": "movein",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "text": "Move-in (new tenant): the owner adds the tenant and sends their link (Admin \u00b7 Add tenant), the tenant photographs the meter on move-in day and submits a starting reading (Tenant \u00b7 Welcome \u2192 Submitted), the owner verifies it against the photo (Admin \u00b7 Verify), and the tenant sees it confirmed \u2014 monthly billing begins on the 1st."
+    },
+    {
+      "id": "moveout-note",
+      "page": "moveout",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "text": "Move-out (close-out): the owner prepares the final settlement \u2014 final reading, deposit held minus deductions, any rent adjustment \u2014 which nets to a refund or a payable (Admin \u00b7 Close-out). The tenant receives that settlement (Tenant \u00b7 Final settlement), and once settled the owner deactivates the link and the tenant sees a clean close (Move-out complete)."
     }
   ],
   "launch": {
     "view": "canvas",
-    "page": "cycle"
+    "page": "movein"
   }
 }

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #6aa8ff; text-decoration: none; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="width:390px;height:520px;background:#0a0a0a;color:#ededed;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#0a0a0a;border-bottom:1px solid #262626;">
+    <div style="width:28px;height:28px;border-radius:7px;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg></div>
+    <div style="flex-grow:1;font-size:15px;font-weight:600;letter-spacing:-0.014em;color:#ededed;">Tenants</div>
+    <img src="admin-logo.jpg" alt="" style="width:28px;height:28px;border-radius:999px;object-fit:cover;border:1px solid #262626;">
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+    <div style="border:1px solid #1e3252;border-radius:12px;background:#111111;padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:12px;font-weight:600;color:#6aa8ff;">Move-in readings to verify</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:600;color:#ededed;">First Floor</span><span style="font-size:12px;color:#737373;">· Sector 57</span></div>
+      <div style="font-size:13px;color:#a1a1a1;">Tenant submitted: <span style="font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;color:#6aa8ff;">8,412</span></div>
+      <div style="border-radius:8px;overflow:hidden;border:1px solid #1f1f1f;background:#1c1c1c;">
+        <svg viewBox="0 0 358 150" style="display:block;width:100%;height:auto;"><rect width="358" height="150" fill="#26282b"></rect><rect x="54" y="22" width="250" height="106" rx="9" fill="#3a3d41"></rect><rect x="74" y="58" width="210" height="44" rx="6" fill="#171a17"></rect><text x="179" y="90" text-anchor="middle" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="30" letter-spacing="6" fill="#8ce99a">08412</text></svg>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;"><span style="font-size:11px;color:#a1a1a1;">Confirm reading</span><div style="display:flex;align-items:center;height:40px;padding:0 12px;border:1px solid #262626;border-radius:8px;background:#0d0d0d;font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;font-size:15px;">8,412</div></div>
+        <div style="display:flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border-radius:8px;background:#ffffff;color:#0a0a0a;font-size:14px;font-weight:500;">Confirm</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
