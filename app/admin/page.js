@@ -368,7 +368,13 @@ export default function Admin(){
     }
     setConfirmSlug(null);
   };
-  const unApprove=(slug)=>{ setApproved(a=>({...a,[slug]:false})); persistApproval(slug,false); };
+  // Editing an approved bill must also clear the persisted bill — otherwise a refresh
+  // re-approves it (any saved bill counts as approved on reload).
+  const unApprove=async(slug)=>{
+    setApproved(a=>({...a,[slug]:false}));
+    setData(prev=>{ if(!prev||!prev.bills) return prev; const b={...prev.bills}; delete b[slug]; return {...prev,bills:b}; });
+    try{ await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"unapprove",pw,period,slug})}); }catch{}
+  };
 
   const resetSubmission=async(slug)=>{
     if(!window.confirm("Unlock this tenant so they can submit a new photo for "+label(period)+"? The current reading stays visible to you until they resubmit.")) return;

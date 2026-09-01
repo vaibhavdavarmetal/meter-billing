@@ -142,6 +142,17 @@ export async function POST(req) {
       return Response.json({ ok: true });
     }
 
+    // Un-approve: clear BOTH the approval and the saved bill. Without clearing the bill,
+    // a refresh would re-approve (any saved bill counts as approved on reload).
+    if (body.action === "unapprove") {
+      if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
+      const period = body.period || currentPeriod();
+      if (!findTenantIn(props, body.slug)) return Response.json({ error: "Unknown tenant" }, { status: 404 });
+      await saveApproval(period, body.slug, null);
+      await saveBill(period, body.slug, null);
+      return Response.json({ ok: true });
+    }
+
     // Admin reset/unlock: keep the old reading but mark it reset so the tenant can submit again
     if (body.action === "reset-submission") {
       if (body.pw !== ADMIN_PASSWORD) return Response.json({ error: "Unauthorized" }, { status: 401 });
