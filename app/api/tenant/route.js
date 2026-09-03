@@ -146,6 +146,7 @@ export async function GET(req) {
   return Response.json({
     name: found.tenant.name,
     propertyName: found.property.name,
+    isTest: found.property.isTest === true, // practice property: bill auto-generates on submit
     active,
     submitted,
     // Reading to show: the admin-approved bill's currentReading is authoritative once a bill
