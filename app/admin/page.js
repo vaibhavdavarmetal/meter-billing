@@ -1099,7 +1099,7 @@ export default function Admin(){
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         <div style={{display:"flex",gap:3}}>
-          {tenantStatuses.map((ts,i)=>(
+          {[...tenantStatuses].sort((a,b)=>Number(b.paid)-Number(a.paid)).map((ts,i)=>(
             <div key={i} title={`${ts.name} (${ts.property}) — ${ts.paid?"paid":"pending"}`} style={{flex:1,height:8,borderRadius:3,background:ts.paid?"var(--good)":"var(--elev)",border:ts.paid?"none":"1px solid var(--line)"}}/>
           ))}
         </div>
