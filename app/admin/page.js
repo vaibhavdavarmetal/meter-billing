@@ -39,6 +39,8 @@ export default function Admin(){
   const [confirmSlug,setConfirmSlug]=useState(null); // tenant pending approve confirmation
   const [confirmUnpaid,setConfirmUnpaid]=useState(null); // {slug,pkey} pending unpaid confirmation
   const [paidAmt,setPaidAmt]=useState({}); // slug -> amount actually paid (string)
+  const [expandedBill,setExpandedBill]=useState({}); // slug -> true when a billing row is expanded (web)
+  const [billSheet,setBillSheet]=useState(null);     // slug whose billing detail sheet is open (mobile)
   const [reportBusy,setReportBusy]=useState(false);
   const [pendingStarts,setPendingStarts]=useState([]);
   const [startVals,setStartVals]=useState({});
@@ -688,6 +690,130 @@ export default function Admin(){
 
   // ── BILLING ──
   const renderBilling=()=>{
+    const pill=(bg,line,fg,dot,text)=>(<span style={{display:"inline-flex",alignItems:"center",gap:6,height:20,padding:"0 8px",borderRadius:999,background:bg,border:"1px solid "+line,color:fg,fontSize:11,fontWeight:600}}><span style={{width:5,height:5,borderRadius:999,background:dot}}/>{text}</span>);
+    const statusPill=(isApproved,hasReading,paid)=> paid
+      ? pill("var(--good-bg)","var(--good-line)","var(--good)","var(--good)","Paid")
+      : isApproved
+        ? pill("var(--good-bg)","var(--good-line)","var(--good)","var(--good)","Approved")
+        : hasReading
+          ? pill("var(--warn-bg)","var(--accent)","var(--accent)","var(--accent)","Needs check")
+          : pill("var(--field)","var(--line)","var(--muted)","var(--faint)","No reading");
+    const computeBill=(pkey,prop,t)=>{
+      const saved=data.bills?data.bills[t.slug]:null;
+      const r=data.readings?data.readings[t.slug]:null;
+      const submitted=r?r.reading:null;
+      const isApproved=!!approved[t.slug];
+      const ov=override[t.slug];
+      const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
+      const prevV=Number(prev[t.slug]||0);
+      const unitsRaw=effective==null?null:Math.max(0,effective-prevV);
+      const units=unitsRaw==null?null:Math.round(unitsRaw*10)/10;
+      const photoUrl=r?.photoUrl||saved?.photoUrl;
+      const hasReading=!!r;
+      const ex=extras[t.slug]||{rent:"",misc:"",miscNote:"",paid:false};
+      const rent=Number(ex.rent)||0, misc=Number(ex.misc)||0;
+      const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
+      const elec= effective==null?null: units*(Number(prop.rate)||0);
+      const total= elec==null?null: elec+rent+misc+carry;
+      const biStatus=biMonthlyStatus(t,period);
+      return {saved,r,submitted,isApproved,effective,prevV,units,photoUrl,hasReading,ex,rent,misc,carry,elec,total,biStatus};
+    };
+    const findT=(slug)=>{ if(!data) return null; for(const [pkey,prop] of Object.entries(data.properties)){ const t=prop.tenants.find(x=>x.slug===slug); if(t) return {pkey,prop,t}; } return null; };
+    // Review affordance: expand inline on desktop, open a bottom sheet on mobile.
+    const openDetail=(slug)=>{ if(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(max-width:899px)").matches){ setBillSheet(slug); } else { setExpandedBill(x=>({...x,[slug]:!x[slug]})); } };
+
+    // Full billing detail — called (not mounted) so inputs keep focus. Used inline (web) and in the sheet (mobile).
+    const renderBillDetail=(pkey,prop,t,opts={})=>{
+      const c=computeBill(pkey,prop,t);
+      const {saved,r,submitted,isApproved,effective,units,hasReading,ex,rent,misc,carry,elec,total,photoUrl,biStatus}=c;
+      return (
+        <>
+          {biStatus==="skip"&&(
+            <div style={{background:"var(--accent-weak)",border:"1px solid var(--good-line)",color:"var(--slate)",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
+              ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
+            </div>
+          )}
+          {biStatus==="bill"&&(
+            <div style={{fontSize:12,color:"var(--good)",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
+          )}
+          {hasReading&&(
+            <>
+              <div style={{margin:"10px 0"}}>
+                <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
+              </div>
+              {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
+              {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"var(--accent)",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
+              {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"var(--card)",color:"var(--accent)",border:"1px solid var(--line)",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
+            </>
+          )}
+          {!hasReading&&biStatus!=="skip"&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
+              <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
+              {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"var(--good)",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
+            </div>
+          )}
+          {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
+
+          {/* Readings row */}
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
+            <div style={{flex:1}}>
+              <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
+              <div style={{position:"relative"}}>
+                <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"var(--accent-weak)":"#fff",color:"var(--ink)"}} placeholder="0"/>
+                {!isApproved&&(
+                  <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
+                    {prevUnlocked[t.slug]?"🔓":"✏️"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"var(--accent-weak)":"#fff"}}/></div>
+            <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"var(--slate)"}}>{units??"—"}</div><div style={{fontSize:10,color:"var(--muted)"}}>units</div></div>
+          </div>
+
+          <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"var(--ink)"}}>{money(elec)}</strong></div>
+
+          {carry!==0&&(
+            <div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>
+              {carry>0?`Carried from last month: +${money(carry)} (was short)`:`Credit from last month: ${money(carry)} (overpaid)`}
+            </div>
+          )}
+
+          <div style={{display:"flex",gap:8}}>
+            <div style={{flex:1}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={ex.rent} onChange={e=>setExtra(t.slug,"rent",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
+            <div style={{flex:1}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={ex.misc} onChange={e=>setExtra(t.slug,"misc",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
+          </div>
+          <input value={ex.miscNote} onChange={e=>setExtra(t.slug,"miscNote",e.target.value)} onBlur={()=>persistExtra(t.slug)} style={{...inpSm,marginTop:6}} placeholder="Misc note (e.g. water, repair)"/>
+
+          {!isApproved?(
+            <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"var(--slate)",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill{total!=null?` · ${money(total)}`:""}</button>
+          ):(
+            <div style={{marginTop:12}}>
+              <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"var(--ink)"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
+                <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"var(--good)",marginTop:0}}>Send bill on WhatsApp</a>
+              </div>
+              <div style={{marginTop:12}}>
+                <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
+                <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
+                {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
+              </div>
+              <div style={{marginTop:14}}>
+                <SlideToPay onConfirm={async()=>{
+                  setExtra(t.slug,"paid",true);
+                  const bill=await saveOneBill(pkey,prop,t,true);
+                  setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
+                  persistExtra(t.slug);
+                  if(opts.onDone) opts.onDone();
+                }}/>
+              </div>
+            </div>
+          )}
+        </>
+      );
+    };
+
     return (
     <>
       {loading&&<p style={{color:"var(--muted)"}}>Loading {label(period)}…</p>}
@@ -717,32 +843,15 @@ export default function Admin(){
           </h2>
           {prop.isTest&&<p style={{fontSize:12,color:"var(--muted)",margin:"0 0 4px"}}>Safe to experiment — never affects real bills.</p>}
           {prop.tenants.map((t)=>{
-            const saved=data.bills?data.bills[t.slug]:null;
-            const r=data.readings?data.readings[t.slug]:null;
-            const submitted=r?r.reading:null;
-            const ai=r&&r.aiReading!=null?r.aiReading:null;
-            const isApproved=!!approved[t.slug];
-            const ov=override[t.slug];
-            const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
-            const prevV=Number(prev[t.slug]||0);
-            const unitsRaw=effective==null?null:Math.max(0,effective-prevV);
-            const units=unitsRaw==null?null:Math.round(unitsRaw*10)/10;
-            const mismatch=ai!=null&&submitted!=null&&Number(ai)!==Number(submitted);
-            const photoUrl=r?.photoUrl||saved?.photoUrl;
-            const hasReading=!!r;
-            const ex=extras[t.slug]||{rent:"",misc:"",miscNote:"",paid:false};
-            const rent=Number(ex.rent)||0, misc=Number(ex.misc)||0;
-            const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
-            const elec= effective==null?null: units*(Number(prop.rate)||0);
-            const total= elec==null?null: elec+rent+misc+carry;
-            const biStatus=biMonthlyStatus(t,period);
+            const c=computeBill(pkey,prop,t);
+            const {saved,isApproved,effective,prevV,units,hasReading,ex,total,biStatus}=c;
 
             if(saved && ex.paid){
               return (
-                <div key={t.slug} style={{...card,borderColor:"var(--good-line)"}}>
+                <div key={t.slug} style={{...card,borderColor:"var(--good-line)",marginTop:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                    <strong>{t.name}</strong>
-                    <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><strong>{t.name}</strong>{statusPill(true,true,true)}</div>
+                    <span style={{fontSize:18,fontWeight:600,color:"var(--good)"}}>{money(saved.amount)}</span>
                   </div>
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
                   <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
@@ -759,100 +868,24 @@ export default function Admin(){
               );
             }
 
+            const open=!!expandedBill[t.slug];
             return (
-              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"var(--accent)":"var(--line)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                  <strong>{t.name}</strong>
-                  {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
-                    :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
+              <div key={t.slug} style={{...card,padding:0,overflow:"hidden",marginTop:12}}>
+                <div onClick={()=>openDetail(t.slug)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <strong style={{fontSize:14}}>{t.name}</strong>
+                      {statusPill(isApproved,hasReading,false)}
+                    </div>
+                    <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>
+                      {hasReading? <>{prevV} → {effective} · <span style={{color:"var(--slate)",fontWeight:600}}>{units} units</span></> : (biStatus==="skip"?"Bi-monthly off month":"No reading yet")}
+                      {t.active===false?<span style={{color:"var(--accent)"}}> · link blocked</span>:null}
+                    </div>
+                  </div>
+                  {total!=null&&<div style={{fontSize:16,fontWeight:600,color:isApproved?"var(--good)":"var(--ink)",whiteSpace:"nowrap"}}>{money(total)}</div>}
+                  <span style={{fontSize:14,color:"var(--slate)",transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
                 </div>
-                {isApproved&&<div style={{fontSize:12,color:"var(--good)",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
-                {t.active===false&&<div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
-
-                {biStatus==="skip"&&(
-                  <div style={{background:"var(--accent-weak)",border:"1px solid var(--good-line)",color:"var(--slate)",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
-                    ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
-                  </div>
-                )}
-                {biStatus==="bill"&&(
-                  <div style={{fontSize:12,color:"var(--good)",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
-                )}
-
-                {hasReading&&(
-                  <>
-                    <div style={{margin:"10px 0"}}>
-                      <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
-                    </div>
-                    {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
-                    {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"var(--accent)",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
-                    {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"var(--card)",color:"var(--accent)",border:"1px solid var(--line)",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
-                  </>
-                )}
-                {!hasReading&&biStatus!=="skip"&&(
-                  <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
-                    <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
-                    {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"var(--good)",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
-                  </div>
-                )}
-                {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
-
-                {/* Readings row — always visible */}
-                <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
-                  <div style={{flex:1}}>
-                    <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
-                    <div style={{position:"relative"}}>
-                      <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"var(--accent-weak)":"#fff",color:"var(--ink)"}} placeholder="0"/>
-                      {!isApproved&&(
-                        <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
-                          {prevUnlocked[t.slug]?"🔓":"✏️"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"var(--accent-weak)":"#fff"}}/></div>
-                  <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"var(--slate)"}}>{units??"—"}</div><div style={{fontSize:10,color:"var(--muted)"}}>units</div></div>
-                </div>
-
-                {/* Electricity amount — always visible */}
-                <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"var(--ink)"}}>{money(elec)}</strong></div>
-
-                {carry!==0&&(
-                  <div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>
-                    {carry>0?`Carried from last month: +${money(carry)} (was short)`:`Credit from last month: ${money(carry)} (overpaid)`}
-                  </div>
-                )}
-
-                {/* Rent + misc — override allowed */}
-                <div style={{display:"flex",gap:8}}>
-                  <div style={{flex:1}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={ex.rent} onChange={e=>setExtra(t.slug,"rent",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
-                  <div style={{flex:1}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={ex.misc} onChange={e=>setExtra(t.slug,"misc",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
-                </div>
-                <input value={ex.miscNote} onChange={e=>setExtra(t.slug,"miscNote",e.target.value)} onBlur={()=>persistExtra(t.slug)} style={{...inpSm,marginTop:6}} placeholder="Misc note (e.g. water, repair)"/>
-
-                {!isApproved?(
-                  <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"var(--slate)",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill</button>
-                ):(
-                  <div style={{marginTop:12}}>
-                    <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"var(--ink)"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
-                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"var(--good)",marginTop:0}}>Send bill on WhatsApp</a>
-                    </div>
-                    <div style={{marginTop:12}}>
-                      <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
-                      <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
-                      {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
-                    </div>
-                    <div style={{marginTop:14}}>
-                      <SlideToPay onConfirm={async()=>{
-                        setExtra(t.slug,"paid",true);
-                        const bill=await saveOneBill(pkey,prop,t,true);
-                        setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
-                        persistExtra(t.slug);
-                      }}/>
-                    </div>
-                  </div>
-                )}
+                {open&&<div style={{padding:"0 14px 14px",borderTop:"1px solid var(--hair)"}}>{renderBillDetail(pkey,prop,t,{onDone:()=>setExpandedBill(x=>({...x,[t.slug]:false}))})}</div>}
               </div>
             );
           })}
@@ -861,35 +894,32 @@ export default function Admin(){
 
       {data&&(
         <div style={{marginTop:24}}>
-          <button onClick={async()=>{
-            setSaving(true); setSavedMsg("");
-            const bills=[];
-            Object.entries(data.properties).forEach(([pkey,prop])=>{
-              prop.tenants.forEach((t)=>{
-                if(!approved[t.slug]) return;
-                const b=buildBill(pkey,prop,t);
-                if(b.currentReading==null && b.rent===0 && b.misc===0) return;
-                bills.push(b);
-              });
-            });
-            if(bills.length===0){ setSavedMsg("Approve at least one bill first."); setSaving(false); return; }
-            try{
-              const res=await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save-bill",pw,period,bills})});
-              if(!res.ok) throw new Error();
-              setSavedMsg(`Saved ${bills.length} bill(s) for ${label(period)}.`);
-              await fetchPeriod(period,pw);
-            }catch{ setSavedMsg("Could not save. Try again."); }
-            setSaving(false);
-          }} style={{...btn,background:"var(--ink)"}} disabled={saving}>{saving?"Saving…":"Save all approved bills to history"}</button>
-          {savedMsg&&<p style={{fontSize:13,color:"var(--good)",textAlign:"center",marginTop:8}}>{savedMsg}</p>}
-
-          <div style={{display:"flex",gap:8,marginTop:16}}>
+          <div style={{display:"flex",gap:8}}>
             <a href={`/api/report?scope=month&period=${period}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ This month (CSV)</a>
             <a href={`/api/report?scope=year&year=${period.split("-")[0]}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ Full year (CSV)</a>
           </div>
-          <p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginTop:6}}>Reports include only bills saved to history. Opens as a spreadsheet.</p>
+          <p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginTop:6}}>Approving a bill saves it to history automatically. CSV opens as a spreadsheet.</p>
         </div>
       )}
+
+      {/* MOBILE: billing detail sheet */}
+      {billSheet&&(()=>{ const f=findT(billSheet); if(!f) return null; const c=computeBill(f.pkey,f.prop,f.t); return (
+        <div style={{position:"fixed",inset:0,zIndex:45,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+          <div onClick={()=>setBillSheet(null)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)"}}/>
+          <div style={{position:"relative",background:"var(--card)",borderTopLeftRadius:18,borderTopRightRadius:18,borderTop:"1px solid var(--line)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",flexShrink:0}}><div style={{width:40,height:4,borderRadius:999,background:"var(--line)"}}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 16px 10px",flexShrink:0}}>
+              <strong style={{fontSize:15,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.t.name}</strong>
+              {statusPill(c.isApproved,c.hasReading,false)}
+              {c.total!=null&&<span style={{fontSize:16,fontWeight:600,color:c.isApproved?"var(--good)":"var(--ink)"}}>{money(c.total)}</span>}
+            </div>
+            <div style={{overflowY:"auto",padding:"0 16px 16px"}}>{renderBillDetail(f.pkey,f.prop,f.t,{onDone:()=>setBillSheet(null)})}</div>
+            <div style={{padding:"12px 16px calc(12px + env(safe-area-inset-bottom))",borderTop:"1px solid var(--line)",flexShrink:0}}>
+              <button onClick={()=>setBillSheet(null)} style={{...btn,background:"var(--field)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0}}>Close</button>
+            </div>
+          </div>
+        </div>
+      );})()}
     </>
     );
   };
