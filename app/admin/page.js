@@ -1095,7 +1095,6 @@ export default function Admin(){
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
-        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
         <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
