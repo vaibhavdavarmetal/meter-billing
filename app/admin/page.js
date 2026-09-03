@@ -897,7 +897,7 @@ export default function Admin(){
     : { "--paper":"#fafafa","--card":"#ffffff","--elev":"#f6f6f6","--ink":"#0a0a0a","--muted":"#666666","--faint":"#8f8f8f","--line":"#eaeaea","--hair":"#f2f2f2","--field":"#fafafa","--slate":"#0068d6","--accent":"#b45309","--good":"#0f7b34","--good-bg":"#edf7f0","--good-line":"#c6e5cf","--warn-bg":"#fff8eb","--warn-line":"#f5e0b3","--accent-weak":"#f4f9ff","--primary-bg":"#0a0a0a","--primary-fg":"#ffffff","--shadow":"0 1px 2px rgba(0,0,0,0.04)" };
 
   // Month summary for the rail (real values from saved bills / readings).
-  let sumBilled=0,sumCollected=0,paidCount=0,tenantCount=0,noReadingCount=0; const attention=[];
+  let sumBilled=0,sumCollected=0,paidCount=0,tenantCount=0,noReadingCount=0,sumUnits=0; const attention=[]; const unitsByProp={};
   if(data){
     Object.entries(data.properties).forEach(([pk,prop])=>{
       if(prop.isTest) return;
@@ -909,11 +909,22 @@ export default function Admin(){
         if(!r) noReadingCount++;
         const ai=r&&r.aiReading!=null?r.aiReading:null;
         if(ai!=null&&r&&Number(ai)!==Number(r.reading)&&!(b&&b.paid)) attention.push({name:t.name,kind:"mismatch"});
+        // Units used this month — mirrors each card: effective current − previous.
+        // Uses live reading before approval so the total grows as photos come in.
+        const ov=override[t.slug];
+        const submitted=r?r.reading:null;
+        const effective= ov!==undefined&&ov!==""?Number(ov): (b&&b.currentReading!=null?b.currentReading:(submitted!=null?submitted:null));
+        const prevV=Number(prev[t.slug]||0);
+        const u= effective==null?0:Math.round(Math.max(0,effective-prevV)*10)/10;
+        unitsByProp[pk]=(unitsByProp[pk]||0)+u;
+        sumUnits+=u;
       });
     });
   }
   const outstanding=sumBilled-sumCollected;
   const collectedPct= sumBilled>0 ? Math.round((sumCollected/sumBilled)*100) : 0;
+  sumUnits=Math.round(sumUnits*10)/10;
+  const propUnits= data ? Object.entries(data.properties).filter(([pk,p])=>!p.isTest).map(([pk,p])=>({name:p.name, units:Math.round((unitsByProp[pk]||0)*10)/10})) : [];
   const propsForNav = (data&&data.properties) || reg || null;
   const dotColors=["var(--good)","var(--slate)","var(--faint)","var(--accent)"];
 
@@ -940,6 +951,37 @@ export default function Admin(){
       <button onClick={async()=>{ const p=shiftPeriod(period,1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Next month">›</button>
     </div>
   );
+  // Collection summary — rendered in the desktop rail AND inline on mobile (where the rail is hidden).
+  const CollectionSummary=()=>(
+    <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{label(period)}</div>
+        <div style={{fontSize:12,color:"var(--faint)"}}>{paidCount} of {tenantCount} paid</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        <div style={{height:6,borderRadius:999,background:"var(--elev)",overflow:"hidden",display:"flex"}}><div style={{width:collectedPct+"%",background:"var(--good)"}}/></div>
+        <div style={{fontSize:11,color:"var(--faint)"}}>{collectedPct}% collected</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,borderTop:"1px solid var(--hair)",paddingTop:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <span style={{fontSize:13,color:"var(--muted)"}}>Units this month</span>
+          <span style={{fontSize:14,fontWeight:600,color:"var(--slate)"}}>{sumUnits} units</span>
+        </div>
+        {propUnits.map((p)=>(
+          <div key={p.name} style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:12,color:"var(--faint)"}}>{p.name}</span>
+            <span style={{fontSize:12,fontFamily:"'Geist Mono', ui-monospace, Menlo, monospace",color:"var(--muted)"}}>{p.units} units</span>
+          </div>
+        ))}
+        <div style={{fontSize:11,color:"var(--faint)",lineHeight:1.45}}>Total sub-meter units recorded this month — updates as readings come in. Use it to cross-check the utility bill.</div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{...themeVars, background:"var(--paper)", color:"var(--ink)", minHeight:"100vh"}}>
@@ -962,9 +1004,11 @@ export default function Admin(){
         .bottomnav{ display:none; }
         .navbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; border:none; background:transparent; color:var(--muted); font-size:11px; font-weight:500; cursor:pointer; border-radius:8px; }
         .navbtn.active{ color:var(--ink); }
+        .mobileSummary{ display:none; }
         @media (max-width: 899px){
           .console{ display:block; }
           .sidebar,.rail{ display:none; }
+          .mobileSummary{ display:block; margin-bottom:16px; }
           .topbar{ position:static; min-height:auto; padding:14px 16px; flex-wrap:wrap; }
           .content{ display:block; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); max-width:600px; margin:0 auto; }
           .bottomnav{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; gap:4px; background:var(--card); border-top:1px solid var(--line); padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
@@ -1021,26 +1065,15 @@ export default function Admin(){
           </div>
 
           <div className="content">
+            {view==="billing"&&data&&(
+              <div className="mobileSummary"><CollectionSummary/></div>
+            )}
             <div className="contentmain">
               {view==="settlement"?renderSettlement():view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
             </div>
             {view==="billing"&&data&&(
               <aside className="rail">
-                <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,display:"flex",flexDirection:"column",gap:14}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{label(period)}</div>
-                    <div style={{fontSize:12,color:"var(--faint)"}}>{paidCount} of {tenantCount} paid</div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <div style={{height:6,borderRadius:999,background:"var(--elev)",overflow:"hidden",display:"flex"}}><div style={{width:collectedPct+"%",background:"var(--good)"}}/></div>
-                    <div style={{fontSize:11,color:"var(--faint)"}}>{collectedPct}% collected</div>
-                  </div>
-                </div>
+                <CollectionSummary/>
                 <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:"16px 16px 4px",display:"flex",flexDirection:"column",marginTop:16}}>
                   <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",paddingBottom:12}}>Needs attention</div>
                   {noReadingCount>0&&(
