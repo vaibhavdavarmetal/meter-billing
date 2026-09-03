@@ -39,6 +39,8 @@ export default function Admin(){
   const [confirmSlug,setConfirmSlug]=useState(null); // tenant pending approve confirmation
   const [confirmUnpaid,setConfirmUnpaid]=useState(null); // {slug,pkey} pending unpaid confirmation
   const [paidAmt,setPaidAmt]=useState({}); // slug -> amount actually paid (string)
+  const [expandedBill,setExpandedBill]=useState({}); // slug -> true when a billing row is expanded (web)
+  const [billSheet,setBillSheet]=useState(null);     // slug whose billing detail sheet is open (mobile)
   const [reportBusy,setReportBusy]=useState(false);
   const [pendingStarts,setPendingStarts]=useState([]);
   const [startVals,setStartVals]=useState({});
@@ -97,8 +99,11 @@ export default function Admin(){
   const [theme,setTheme]=useState("dark"); // dark by default
   const [photoView,setPhotoView]=useState(null); // url of photo to preview full-screen
   const [prevUnlocked,setPrevUnlocked]=useState({}); // slug -> true to allow editing previous reading
-  const [expandedTenant,setExpandedTenant]=useState({}); // slug -> true when accordion open
   const [agrBusy,setAgrBusy]=useState({}); // slug -> true while uploading agreement
+  const [manageTab,setManageTab]=useState(null);   // active property key on the Tenants tab
+  const [manageSel,setManageSel]=useState(null);    // {pk,i} tenant selected for the detail panel/sheet
+  const [sheetOpen,setSheetOpen]=useState(false);   // mobile bottom-sheet visibility
+  const [copied,setCopied]=useState(null);          // slug whose link was just copied (transient)
 
   useEffect(()=>{
     try{ const t=window.localStorage.getItem("admin-theme"); if(t) setTheme(t); }catch{}
@@ -439,8 +444,8 @@ export default function Admin(){
     if(!reg) return <p style={{color:"var(--muted)"}}>{regMsg||"Loading tenants…"}</p>;
     const setProp=(pk,f,v)=>setReg({...reg,[pk]:{...reg[pk],[f]:v}});
     const setTen=(pk,i,f,v)=>{ const n=structuredClone(reg); n[pk].tenants[i][f]=v; setReg(n); };
-    const addTen=(pk)=>{ const n=structuredClone(reg); n[pk].tenants.push({slug:pk+"-"+(n[pk].tenants.length+1),name:"New Tenant",rent:0,misc:0}); setReg(n); };
-    const removeTen=(pk,i)=>{ const t=reg[pk].tenants[i]; if(!window.confirm(`Remove ${t.name||"this tenant"}? This removes them from the list. Past bills and readings stay saved. You can re-add them later.`)) return; const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); };
+    const addTen=(pk)=>{ const n=structuredClone(reg); const ni=n[pk].tenants.length; n[pk].tenants.push({slug:pk+"-"+(ni+1),name:"New Tenant",rent:0,misc:0}); setReg(n); setManageSel({pk,i:ni}); setSheetOpen(true); };
+    const removeTen=(pk,i)=>{ const t=reg[pk].tenants[i]; if(!window.confirm(`Remove ${t.name||"this tenant"}? This removes them from the list. Past bills and readings stay saved. You can re-add them later.`)) return; const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); setManageSel(null); setSheetOpen(false); };
     const setContact=(pk,ci,f,v)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts[ci][f]=v; setReg(n); };
     const addContact=(pk)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts.push({label:"",name:"",phone:""}); setReg(n); };
     const removeContact=(pk,ci)=>{ const c=reg[pk].contacts[ci]; if(!window.confirm(`Remove ${c.name||"this contact"}${c.label?` (${c.label})`:""}?`)) return; const n=structuredClone(reg); n[pk].contacts.splice(ci,1); setReg(n); };
@@ -455,10 +460,109 @@ export default function Admin(){
         setReg(fixed); setRegMsg("Saved. Changes are live.");
       }catch{ setRegMsg("Could not save."); }
     };
+    const keys=Object.keys(reg);
+    const activePk=(manageTab&&reg[manageTab])?manageTab:keys[0];
+    const prop=reg[activePk];
+    const sel=(manageSel&&manageSel.pk===activePk&&reg[activePk]&&reg[activePk].tenants[manageSel.i])?manageSel:null;
+    const mono="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+    const initials=(name)=>{ const s=(name||"").trim().split(/\s+/).filter(Boolean); return (s.slice(0,2).map(w=>w[0]).join("")||"?").toUpperCase(); };
+    const linkFor=(slug)=> (typeof window!=="undefined"?window.location.origin:"")+"/?t="+slug;
+    const copyLink=(slug)=>{ try{ navigator.clipboard.writeText(linkFor(slug)); setCopied(slug); setTimeout(()=>setCopied(c=>c===slug?null:c),1500); }catch{} };
+    const statusPill=(t)=> prop.isTest
+      ? {bg:"var(--warn-bg)",line:"var(--accent)",fg:"var(--accent)",dot:"var(--accent)",text:"Practice"}
+      : (t.active===false
+          ? {bg:"var(--field)",line:"var(--line)",fg:"var(--muted)",dot:"var(--faint)",text:"Inactive"}
+          : {bg:"var(--good-bg)",line:"var(--good-line)",fg:"var(--good)",dot:"var(--good)",text:"Active"});
+    const avatar={width:28,height:28,flexShrink:0,borderRadius:7,background:"var(--elev)",border:"1px solid var(--line)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:"var(--muted)"};
+    const thStyle={fontSize:11,fontWeight:500,color:"var(--faint)"};
+    const pillEl=(sp)=>(<span style={{display:"inline-flex",alignItems:"center",gap:6,height:22,padding:"0 8px",borderRadius:999,background:sp.bg,border:"1px solid "+sp.line,color:sp.fg,fontSize:11,fontWeight:500}}><span style={{width:5,height:5,borderRadius:999,background:sp.dot}}/>{sp.text}</span>);
+
+    // Full tenant detail form — called (not mounted as a component) so the inputs keep
+    // focus across re-renders. Rendered in the desktop right panel AND the mobile bottom sheet.
+    const renderDetail=(pk,i)=>{
+      const t=reg[pk].tenants[i]; if(!t) return null; const isTest=reg[pk].isTest;
+      return (
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <div style={{...avatar,width:34,height:34,fontSize:12}}>{initials(t.name)}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:15,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||"(unnamed)"}</div>
+              <div style={{fontSize:12,color:"var(--faint)"}}>{reg[pk].name}{t.movingOut?" · moving out":""}</div>
+            </div>
+            {!isTest&&<MoreMenu slug={t.slug} name={t.name} onRemove={()=>removeTen(pk,i)}/>}
+          </div>
+
+          <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+            <div style={{flex:"2 1 140px"}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
+            <div style={{flex:"1 1 84px"}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
+            <div style={{flex:"1 1 84px"}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={t.misc??""} onChange={e=>setTen(pk,i,"misc",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
+          </div>
+          <div style={{marginBottom:8}}>
+            <label style={lblSm}>WhatsApp number (with country code, e.g. 919812345678)</label>
+            <input inputMode="tel" value={t.phone||""} onChange={e=>setTen(pk,i,"phone",e.target.value.replace(/[^0-9]/g,""))} style={inpSm} placeholder="91XXXXXXXXXX"/>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",marginBottom:8}}>
+            <div style={{flex:"1 1 100%"}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:mono}}/></div>
+            <div style={{flex:"1 1 120px"}}><label style={lblSm}>Start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
+            <div style={{flex:"1 1 150px"}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
+          </div>
+          {!isTest&&(
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:"var(--slate)",cursor:"pointer"}}>
+              <input type="checkbox" checked={!!t.biMonthly} onChange={e=>setTen(pk,i,"biMonthly",e.target.checked)}/>
+              Electricity billed every 2 months (bi-monthly)
+            </label>
+          )}
+          {t.biMonthly&&(
+            <div style={{marginBottom:8}}>
+              <label style={lblSm}>First billing month (YYYY-MM)</label>
+              <input value={t.biMonthlyStart||"2026-08"} onChange={e=>setTen(pk,i,"biMonthlyStart",e.target.value)} style={{...inpSm,width:140}} placeholder="2026-08"/>
+            </div>
+          )}
+          <div style={{marginBottom:8}}>
+            <label style={lblSm}>Personal link</label>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <input readOnly value={linkFor(t.slug)} onFocus={e=>e.target.select()} style={{...inpSm,fontFamily:mono,fontSize:12,color:"var(--muted)"}}/>
+              <button type="button" onClick={()=>copyLink(t.slug)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--slate)",borderRadius:8,padding:"9px 12px",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{copied===t.slug?"Copied":"Copy"}</button>
+            </div>
+          </div>
+          {!isTest&&(
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{flex:1,textAlign:"center",background:"transparent",color:"var(--good)",border:"1px solid var(--good)",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700}}>
+                Send link{t.phone?"":" (add number)"}
+              </a>
+              <button type="button" onClick={()=>setTen(pk,i,"active",t.active===false?true:false)} style={{background:t.active===false?"var(--accent)":"var(--field)",color:t.active===false?"#fff":"var(--muted)",border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                {t.active===false?"Reactivate":"Deactivate"}
+              </button>
+            </div>
+          )}
+          {t.active===false&&<p style={{fontSize:12,color:"var(--accent)",marginBottom:8,fontWeight:600}}>This tenant's link is blocked. Remember to Save changes.</p>}
+          {!isTest&&(
+            <div style={{marginTop:4,paddingTop:12,borderTop:"1px solid var(--line)"}}>
+              <label style={lblSm}>Rental agreement</label>
+              {t.agreementUrl?(
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                  <a href={t.agreementUrl} target="_blank" rel="noreferrer" style={{flex:1,minWidth:0,color:"var(--slate)",fontSize:13,textDecoration:"none",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📄 {t.agreementName||"agreement"}</a>
+                  <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"8px 12px",marginTop:0,cursor:"pointer",fontSize:12}}>
+                    {agrBusy[t.slug]?"Uploading…":"Replace"}
+                    <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
+                  </label>
+                </div>
+              ):(
+                <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,cursor:"pointer",display:"block",textAlign:"center"}}>
+                  {agrBusy[t.slug]?"Uploading…":"⬆ Upload agreement (PDF or photo)"}
+                  <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
+                </label>
+              )}
+              <p style={{fontSize:11,color:"var(--muted)",marginTop:4}}>Max ~4MB. Stored securely; one per tenant.</p>
+            </div>
+          )}
+        </div>
+      );
+    };
+
     return (
       <div>
-        <p style={{fontSize:13,color:"var(--muted)"}}>Edit names, the per-unit rate, default rent, and default misc for each tenant. Defaults auto-fill billing each month; you can still override misc there. Changes go live after you save.</p>
-        <p style={{fontSize:13,color:"var(--muted)"}}>To move a tenant out, open their <strong style={{color:"var(--ink)"}}>⋯ menu on the Billing tab → Start move-out</strong>. They submit a final reading and you settle it there.</p>
+        <p style={{fontSize:13,color:"var(--muted)"}}>Pick a property, then a tenant to edit their details. Rate and “Add tenant” belong to the selected property. Changes go live after you Save.</p>
         {pendingStarts.length>0&&(
           <div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:14,padding:14,marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Move-in readings to verify</div>
@@ -476,115 +580,240 @@ export default function Admin(){
             ))}
           </div>
         )}
-        {Object.entries(reg).map(([pk,prop])=>(
-          <div key={pk} style={{marginTop:18}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <input value={prop.name} onChange={e=>setProp(pk,"name",e.target.value)} style={{...inp,fontWeight:700,flex:1}}/>
-              <div style={{display:"flex",alignItems:"center",gap:4}}>
-                <span style={{fontSize:12,color:"var(--muted)"}}>₹/unit</span>
-                <input inputMode="decimal" value={prop.rate??""} onChange={e=>setProp(pk,"rate",e.target.value.replace(/[^0-9.]/g,""))} style={{...inpSm,width:64}}/>
-              </div>
+
+        {/* Property tabs — drive the whole page; rate + Add tenant + Maintenance belong to the active one */}
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2,marginBottom:2}}>
+          {keys.map(pk=>{ const p=reg[pk]; const on=pk===activePk; return (
+            <button key={pk} onClick={()=>{ setManageTab(pk); setManageSel(null); setSheetOpen(false); }} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px solid "+(on?"var(--ink)":"var(--line)"),background:on?"var(--ink)":"var(--card)",color:on?"var(--paper)":"var(--muted)",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              {p.name}{p.isTest?" · practice":""}
+              <span style={{fontSize:11,opacity:.7}}>{p.tenants.length}</span>
+            </button>
+          );})}
+        </div>
+
+        <div style={{display:"flex",gap:20,alignItems:"flex-start"}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,margin:"14px 0 12px"}}>
+              <input value={prop.name} onChange={e=>setProp(activePk,"name",e.target.value)} style={{...inp,fontWeight:700,flex:1}}/>
+              {!prop.isTest&&<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:12,color:"var(--muted)"}}>₹/unit</span><input inputMode="decimal" value={prop.rate??""} onChange={e=>setProp(activePk,"rate",e.target.value.replace(/[^0-9.]/g,""))} style={{...inpSm,width:70}}/></div>}
             </div>
-            {prop.tenants.map((t,i)=>(
-              <div key={i} style={{...card,padding:0,overflow:"hidden"}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px 8px 14px"}}>
-                  <button type="button" onClick={()=>setExpandedTenant(x=>({...x,[t.slug]:!x[t.slug]}))} style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,padding:"6px 0",background:"transparent",border:"none",cursor:"pointer",color:"var(--ink)"}}>
-                    <span style={{fontWeight:700,fontSize:15,flex:1,minWidth:0,textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}{t.active===false?" (inactive)":""}{t.movingOut?" · moving out":""}</span>
-                    {t.agreementUrl&&<span title="Agreement on file" style={{fontSize:13}}>📄</span>}
-                    <span style={{fontSize:12,color:"var(--muted)"}}>{t.rent?`₹${Number(t.rent).toLocaleString("en-IN")}`:""}</span>
-                    <span style={{fontSize:14,color:"var(--slate)",transform:expandedTenant[t.slug]?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
-                  </button>
-                  {!prop.isTest&&<MoreMenu slug={t.slug} name={t.name} onRemove={()=>removeTen(pk,i)}/>}
-                </div>
-                {expandedTenant[t.slug]&&(
-                <div style={{padding:"0 12px 12px"}}>
-                <div style={{display:"flex",gap:8,marginBottom:6,flexWrap:"wrap"}}>
-                  <div style={{flex:"2 1 140px"}}><label style={lblSm}>Name</label><input value={t.name} onChange={e=>setTen(pk,i,"name",e.target.value)} style={inpSm}/></div>
-                  <div style={{flex:"1 1 84px"}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={t.rent??""} onChange={e=>setTen(pk,i,"rent",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
-                  <div style={{flex:"1 1 84px"}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={t.misc??""} onChange={e=>setTen(pk,i,"misc",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm}/></div>
-                </div>
-                <div style={{marginBottom:6}}>
-                  <label style={lblSm}>WhatsApp number (with country code, e.g. 919812345678)</label>
-                  <input inputMode="tel" value={t.phone||""} onChange={e=>setTen(pk,i,"phone",e.target.value.replace(/[^0-9]/g,""))} style={inpSm} placeholder="91XXXXXXXXXX"/>
-                </div>
-                <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
-                  <div style={{flex:"1 1 100%"}}><label style={lblSm}>Link id (slug)</label><input value={t.slug} onChange={e=>setTen(pk,i,"slug",e.target.value.replace(/[^a-z0-9-]/g,""))} style={{...inpSm,fontFamily:"'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace"}}/></div>
-                  <div style={{flex:"1 1 120px"}}><label style={lblSm}>Start reading</label><input inputMode="numeric" value={t.startReading??""} onChange={e=>setTen(pk,i,"startReading",e.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="from diary"/></div>
-                  <div style={{flex:"1 1 150px"}}><label style={lblSm}>Move-in date (optional)</label><input type="date" value={t.moveIn||""} onChange={e=>setTen(pk,i,"moveIn",e.target.value)} style={inpSm}/></div>
-                </div>
-                {!prop.isTest&&(
-                  <label style={{display:"flex",alignItems:"center",gap:8,marginTop:8,fontSize:13,color:"var(--slate)",cursor:"pointer"}}>
-                    <input type="checkbox" checked={!!t.biMonthly} onChange={e=>setTen(pk,i,"biMonthly",e.target.checked)}/>
-                    Electricity billed every 2 months (bi-monthly)
-                  </label>
-                )}
-                {t.biMonthly&&(
-                  <div style={{marginTop:6}}>
-                    <label style={lblSm}>First billing month (YYYY-MM)</label>
-                    <input value={t.biMonthlyStart||"2026-08"} onChange={e=>setTen(pk,i,"biMonthlyStart",e.target.value)} style={{...inpSm,width:130}} placeholder="2026-08"/>
-                  </div>
-                )}
-                {!prop.isTest&&(
-                  <div style={{display:"flex",gap:8,marginTop:12}}>
-                    <a href={waUrl(t.phone,welcomeText(t.name,t.slug))} target="_blank" rel="noreferrer" style={{flex:1,textAlign:"center",background:"transparent",color:"var(--good)",border:"1px solid var(--good)",textDecoration:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700}}>
-                      Send link{t.phone?"":" (pick contact)"}
-                    </a>
-                    <button type="button" onClick={()=>setTen(pk,i,"active",t.active===false?true:false)} style={{background:t.active===false?"var(--accent)":"var(--field)",color:t.active===false?"#fff":"var(--muted)",border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
-                      {t.active===false?"Inactive — reactivate":"Deactivate link"}
-                    </button>
-                  </div>
-                )}
-                {t.active===false&&<p style={{fontSize:12,color:"var(--accent)",marginTop:6,fontWeight:600}}>This tenant's link is blocked. Remember to Save changes.</p>}
-                {!prop.isTest&&(
-                  <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid var(--line)"}}>
-                    <label style={lblSm}>Rental agreement</label>
-                    {t.agreementUrl?(
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
-                        <a href={t.agreementUrl} target="_blank" rel="noreferrer" style={{flex:1,color:"var(--slate)",fontSize:13,textDecoration:"none",fontWeight:600}}>📄 View / download {t.agreementName||"agreement"}</a>
-                        <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"8px 12px",marginTop:0,cursor:"pointer",fontSize:12}}>
-                          {agrBusy[t.slug]?"Uploading…":"Replace"}
-                          <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
-                        </label>
-                      </div>
-                    ):(
-                      <label style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,cursor:"pointer",display:"block",textAlign:"center"}}>
-                        {agrBusy[t.slug]?"Uploading…":"⬆ Upload agreement (PDF or photo)"}
-                        <input type="file" accept="application/pdf,image/*" onChange={e=>uploadAgreement(t.slug,e.target.files?.[0])} style={{display:"none"}}/>
-                      </label>
-                    )}
-                    <p style={{fontSize:11,color:"var(--muted)",marginTop:4}}>Max ~4MB. Stored securely; one per tenant.</p>
-                  </div>
-                )}
-                </div>
-                )}
+
+            {/* WEB: table */}
+            <div className="tenantTable" style={{border:"1px solid var(--line)",borderRadius:12,overflow:"hidden",background:"var(--card)"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 104px",gap:12,padding:"9px 14px",borderBottom:"1px solid var(--line)",background:"var(--elev)"}}>
+                <div style={thStyle}>Tenant</div><div style={thStyle}>Personal link</div><div style={{...thStyle,textAlign:"right"}}>Rent</div><div style={thStyle}>Status</div>
               </div>
-            ))}
-            {!prop.isTest&&<button onClick={()=>addTen(pk)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:8}}>+ Add tenant to {prop.name}</button>}
+              {prop.tenants.length===0&&<div style={{padding:"16px 14px",fontSize:13,color:"var(--faint)"}}>No tenants yet.</div>}
+              {prop.tenants.map((t,i)=>{ const sp=statusPill(t); const on=sel&&sel.i===i; return (
+                <div key={i} onClick={()=>setManageSel({pk:activePk,i})} style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 104px",gap:12,alignItems:"center",padding:"11px 14px",borderTop:"1px solid var(--hair)",cursor:"pointer",background:on?"var(--elev)":"transparent"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                    <div style={avatar}>{initials(t.name)}</div>
+                    <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                    <span style={{fontFamily:mono,fontSize:12,color:"var(--faint)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>?t={t.slug}</span>
+                    <button type="button" onClick={(e)=>{ e.stopPropagation(); copyLink(t.slug); }} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--slate)",borderRadius:5,padding:"3px 8px",fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0}}>{copied===t.slug?"✓":"Copy"}</button>
+                  </div>
+                  <div style={{textAlign:"right",fontFamily:mono,fontSize:13,color:"var(--ink)"}}>₹{Number(t.rent||0).toLocaleString("en-IN")}</div>
+                  <div>{pillEl(sp)}</div>
+                </div>
+              );})}
+            </div>
+
+            {/* MOBILE: cards */}
+            <div className="tenantCards">
+              {prop.tenants.length===0&&<p style={{fontSize:13,color:"var(--faint)",marginTop:12}}>No tenants yet.</p>}
+              {prop.tenants.map((t,i)=>{ const sp=statusPill(t); return (
+                <div key={i} style={{...card,marginTop:12,display:"flex",alignItems:"center",gap:12}}>
+                  <div style={avatar}>{initials(t.name)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>{pillEl(sp)}{t.rent?<span style={{fontSize:12,color:"var(--muted)",fontFamily:mono}}>₹{Number(t.rent).toLocaleString("en-IN")}</span>:null}{t.agreementUrl?<span title="Agreement on file" style={{fontSize:12}}>📄</span>:null}</div>
+                  </div>
+                  <button onClick={()=>{ setManageSel({pk:activePk,i}); setSheetOpen(true); }} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--ink)",borderRadius:9,padding:"9px 16px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Edit</button>
+                </div>
+              );})}
+            </div>
+
+            {!prop.isTest&&<button onClick={()=>addTen(activePk)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:12}}>+ Add tenant to {prop.name}</button>}
 
             {!prop.isTest&&(
-              <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--line)"}}>
+              <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid var(--line)"}}>
                 <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Maintenance contacts · {prop.name}</div>
+                <p style={{fontSize:12,color:"var(--faint)",marginTop:0,marginBottom:8}}>Shared for the whole property (plumber, electrician, cleaner…).</p>
                 {(prop.contacts||[]).map((c,ci)=>(
-                  <div key={ci} style={{display:"flex",gap:6,marginBottom:6}}>
-                    <input value={c.label||""} onChange={e=>setContact(pk,ci,"label",e.target.value)} style={{...inpSm,width:90}} placeholder="Role"/>
-                    <input value={c.name||""} onChange={e=>setContact(pk,ci,"name",e.target.value)} style={{...inpSm,flex:1}} placeholder="Name"/>
-                    <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(pk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,width:110}} placeholder="Phone"/>
-                    <button onClick={()=>removeContact(pk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 10px",cursor:"pointer"}}>✕</button>
+                  <div key={ci} style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
+                    <input value={c.label||""} onChange={e=>setContact(activePk,ci,"label",e.target.value)} style={{...inpSm,flex:"1 1 80px"}} placeholder="Role"/>
+                    <input value={c.name||""} onChange={e=>setContact(activePk,ci,"name",e.target.value)} style={{...inpSm,flex:"2 1 120px"}} placeholder="Name"/>
+                    <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(activePk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,flex:"1 1 110px"}} placeholder="Phone"/>
+                    <button onClick={()=>removeContact(activePk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 12px",cursor:"pointer"}}>✕</button>
                   </div>
                 ))}
-                <button onClick={()=>addContact(pk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"8px"}}>+ Add contact (plumber, electrician, cleaner…)</button>
+                <button onClick={()=>addContact(activePk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"9px"}}>+ Add contact</button>
               </div>
             )}
+
+            <button onClick={save} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
+            {regMsg&&<p style={{fontSize:13,color:regMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{regMsg}</p>}
           </div>
-        ))}
-        <button onClick={save} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
-        {regMsg&&<p style={{fontSize:13,color:regMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{regMsg}</p>}
+
+          {/* WEB: detail panel */}
+          <aside className="detailPanel" style={{width:340,flexShrink:0,position:"sticky",top:80}}>
+            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,minHeight:120}}>
+              {sel? renderDetail(activePk,sel.i) : (
+                <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
+                  <div style={{fontSize:24,marginBottom:8}}>👈</div>
+                  <div style={{fontSize:13}}>Select a tenant to view and edit their details.</div>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        {/* MOBILE: bottom sheet */}
+        {sheetOpen&&sel&&(
+          <div style={{position:"fixed",inset:0,zIndex:45,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+            <div onClick={()=>setSheetOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)"}}/>
+            <div style={{position:"relative",background:"var(--card)",borderTopLeftRadius:18,borderTopRightRadius:18,borderTop:"1px solid var(--line)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+              <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",flexShrink:0}}><div style={{width:40,height:4,borderRadius:999,background:"var(--line)"}}/></div>
+              <div style={{overflowY:"auto",padding:"6px 16px 16px"}}>{renderDetail(activePk,sel.i)}</div>
+              <div style={{display:"flex",gap:8,padding:"12px 16px calc(12px + env(safe-area-inset-bottom))",borderTop:"1px solid var(--line)",flexShrink:0}}>
+                <button onClick={()=>setSheetOpen(false)} style={{...btn,background:"var(--field)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0,width:"auto",padding:"13px 18px"}}>Close</button>
+                <button onClick={async()=>{ await save(); setSheetOpen(false); }} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>Save changes</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
   // ── BILLING ──
   const renderBilling=()=>{
+    const pill=(bg,line,fg,dot,text)=>(<span style={{display:"inline-flex",alignItems:"center",gap:6,height:20,padding:"0 8px",borderRadius:999,background:bg,border:"1px solid "+line,color:fg,fontSize:11,fontWeight:600}}><span style={{width:5,height:5,borderRadius:999,background:dot}}/>{text}</span>);
+    const statusPill=(isApproved,hasReading,paid)=> paid
+      ? pill("var(--good-bg)","var(--good-line)","var(--good)","var(--good)","Paid")
+      : isApproved
+        ? pill("var(--good-bg)","var(--good-line)","var(--good)","var(--good)","Approved")
+        : hasReading
+          ? pill("var(--warn-bg)","var(--accent)","var(--accent)","var(--accent)","Needs check")
+          : pill("var(--field)","var(--line)","var(--muted)","var(--faint)","No reading");
+    const computeBill=(pkey,prop,t)=>{
+      const saved=data.bills?data.bills[t.slug]:null;
+      const r=data.readings?data.readings[t.slug]:null;
+      const submitted=r?r.reading:null;
+      const isApproved=!!approved[t.slug];
+      const ov=override[t.slug];
+      const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
+      const prevV=Number(prev[t.slug]||0);
+      const unitsRaw=effective==null?null:Math.max(0,effective-prevV);
+      const units=unitsRaw==null?null:Math.round(unitsRaw*10)/10;
+      const photoUrl=r?.photoUrl||saved?.photoUrl;
+      const hasReading=!!r;
+      const ex=extras[t.slug]||{rent:"",misc:"",miscNote:"",paid:false};
+      const rent=Number(ex.rent)||0, misc=Number(ex.misc)||0;
+      const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
+      const elec= effective==null?null: units*(Number(prop.rate)||0);
+      const total= elec==null?null: elec+rent+misc+carry;
+      const biStatus=biMonthlyStatus(t,period);
+      return {saved,r,submitted,isApproved,effective,prevV,units,photoUrl,hasReading,ex,rent,misc,carry,elec,total,biStatus};
+    };
+    const findT=(slug)=>{ if(!data) return null; for(const [pkey,prop] of Object.entries(data.properties)){ const t=prop.tenants.find(x=>x.slug===slug); if(t) return {pkey,prop,t}; } return null; };
+    // Review affordance: expand inline on desktop, open a bottom sheet on mobile.
+    const openDetail=(slug)=>{ if(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(max-width:899px)").matches){ setBillSheet(slug); } else { setExpandedBill(x=>({...x,[slug]:!x[slug]})); } };
+
+    // Full billing detail — called (not mounted) so inputs keep focus. Used inline (web) and in the sheet (mobile).
+    const renderBillDetail=(pkey,prop,t,opts={})=>{
+      const c=computeBill(pkey,prop,t);
+      const {saved,r,submitted,isApproved,effective,units,hasReading,ex,rent,misc,carry,elec,total,photoUrl,biStatus}=c;
+      return (
+        <>
+          {biStatus==="skip"&&(
+            <div style={{background:"var(--accent-weak)",border:"1px solid var(--good-line)",color:"var(--slate)",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
+              ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
+            </div>
+          )}
+          {biStatus==="bill"&&(
+            <div style={{fontSize:12,color:"var(--good)",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
+          )}
+          {hasReading&&(
+            <>
+              <div style={{margin:"10px 0"}}>
+                <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
+              </div>
+              {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
+              {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"var(--accent)",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
+              {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"var(--card)",color:"var(--accent)",border:"1px solid var(--line)",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
+            </>
+          )}
+          {!hasReading&&biStatus!=="skip"&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
+              <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
+              {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"var(--good)",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
+            </div>
+          )}
+          {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
+
+          {/* Readings row */}
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
+            <div style={{flex:1}}>
+              <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
+              <div style={{position:"relative"}}>
+                <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"var(--accent-weak)":"#fff",color:"var(--ink)"}} placeholder="0"/>
+                {!isApproved&&(
+                  <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
+                    {prevUnlocked[t.slug]?"🔓":"✏️"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"var(--accent-weak)":"#fff"}}/></div>
+            <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"var(--slate)"}}>{units??"—"}</div><div style={{fontSize:10,color:"var(--muted)"}}>units</div></div>
+          </div>
+
+          <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"var(--ink)"}}>{money(elec)}</strong></div>
+
+          {carry!==0&&(
+            <div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>
+              {carry>0?`Carried from last month: +${money(carry)} (was short)`:`Credit from last month: ${money(carry)} (overpaid)`}
+            </div>
+          )}
+
+          <div style={{display:"flex",gap:8}}>
+            <div style={{flex:1}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={ex.rent} onChange={e=>setExtra(t.slug,"rent",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
+            <div style={{flex:1}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={ex.misc} onChange={e=>setExtra(t.slug,"misc",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
+          </div>
+          <input value={ex.miscNote} onChange={e=>setExtra(t.slug,"miscNote",e.target.value)} onBlur={()=>persistExtra(t.slug)} style={{...inpSm,marginTop:6}} placeholder="Misc note (e.g. water, repair)"/>
+
+          {!isApproved?(
+            <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"var(--slate)",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill{total!=null?` · ${money(total)}`:""}</button>
+          ):(
+            <div style={{marginTop:12}}>
+              <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"var(--ink)"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
+                <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"var(--good)",marginTop:0}}>Send bill on WhatsApp</a>
+              </div>
+              <div style={{marginTop:12}}>
+                <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
+                <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
+                {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
+              </div>
+              <div style={{marginTop:14}}>
+                <SlideToPay onConfirm={async()=>{
+                  setExtra(t.slug,"paid",true);
+                  const bill=await saveOneBill(pkey,prop,t,true);
+                  setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
+                  persistExtra(t.slug);
+                  if(opts.onDone) opts.onDone();
+                }}/>
+              </div>
+            </div>
+          )}
+        </>
+      );
+    };
+
     return (
     <>
       {loading&&<p style={{color:"var(--muted)"}}>Loading {label(period)}…</p>}
@@ -614,32 +843,15 @@ export default function Admin(){
           </h2>
           {prop.isTest&&<p style={{fontSize:12,color:"var(--muted)",margin:"0 0 4px"}}>Safe to experiment — never affects real bills.</p>}
           {prop.tenants.map((t)=>{
-            const saved=data.bills?data.bills[t.slug]:null;
-            const r=data.readings?data.readings[t.slug]:null;
-            const submitted=r?r.reading:null;
-            const ai=r&&r.aiReading!=null?r.aiReading:null;
-            const isApproved=!!approved[t.slug];
-            const ov=override[t.slug];
-            const effective= ov!==undefined&&ov!==""?Number(ov): saved&&saved.currentReading!=null?saved.currentReading: submitted!=null?submitted: null;
-            const prevV=Number(prev[t.slug]||0);
-            const unitsRaw=effective==null?null:Math.max(0,effective-prevV);
-            const units=unitsRaw==null?null:Math.round(unitsRaw*10)/10;
-            const mismatch=ai!=null&&submitted!=null&&Number(ai)!==Number(submitted);
-            const photoUrl=r?.photoUrl||saved?.photoUrl;
-            const hasReading=!!r;
-            const ex=extras[t.slug]||{rent:"",misc:"",miscNote:"",paid:false};
-            const rent=Number(ex.rent)||0, misc=Number(ex.misc)||0;
-            const carry=Number((data.carryIn&&data.carryIn[t.slug])||0);
-            const elec= effective==null?null: units*(Number(prop.rate)||0);
-            const total= elec==null?null: elec+rent+misc+carry;
-            const biStatus=biMonthlyStatus(t,period);
+            const c=computeBill(pkey,prop,t);
+            const {saved,isApproved,effective,prevV,units,hasReading,ex,total,biStatus}=c;
 
             if(saved && ex.paid){
               return (
-                <div key={t.slug} style={{...card,borderColor:"var(--good-line)"}}>
+                <div key={t.slug} style={{...card,borderColor:"var(--good-line)",marginTop:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                    <strong>{t.name}</strong>
-                    <span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(saved.amount)}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><strong>{t.name}</strong>{statusPill(true,true,true)}</div>
+                    <span style={{fontSize:18,fontWeight:600,color:"var(--good)"}}>{money(saved.amount)}</span>
                   </div>
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:6}}>Electricity {money(saved.electricity)} · Rent {money(saved.rent)} · Misc {money(saved.misc)}{saved.carryIn?` · Adj ${money(saved.carryIn)}`:""}</div>
                   <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>prev {saved.previousReading} → curr {saved.currentReading} ({saved.units} units)</div>
@@ -656,100 +868,24 @@ export default function Admin(){
               );
             }
 
+            const open=!!expandedBill[t.slug];
             return (
-              <div key={t.slug} style={{...card,borderColor:mismatch&&!isApproved?"var(--accent)":"var(--line)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                  <strong>{t.name}</strong>
-                  {isApproved?<span style={{fontFamily:"'Geist', ui-sans-serif, system-ui, sans-serif",fontSize:20,color:"var(--good)"}}>{money(total)}</span>
-                    :<span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{hasReading?"awaiting your check":"no submission"}</span>}
+              <div key={t.slug} style={{...card,padding:0,overflow:"hidden",marginTop:12}}>
+                <div onClick={()=>openDetail(t.slug)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <strong style={{fontSize:14}}>{t.name}</strong>
+                      {statusPill(isApproved,hasReading,false)}
+                    </div>
+                    <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>
+                      {hasReading? <>{prevV} → {effective} · <span style={{color:"var(--slate)",fontWeight:600}}>{units} units</span></> : (biStatus==="skip"?"Bi-monthly off month":"No reading yet")}
+                      {t.active===false?<span style={{color:"var(--accent)"}}> · link blocked</span>:null}
+                    </div>
+                  </div>
+                  {total!=null&&<div style={{fontSize:16,fontWeight:600,color:isApproved?"var(--good)":"var(--ink)",whiteSpace:"nowrap"}}>{money(total)}</div>}
+                  <span style={{fontSize:14,color:"var(--slate)",transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}>▾</span>
                 </div>
-                {isApproved&&<div style={{fontSize:12,color:"var(--good)",fontWeight:600,marginTop:2}}>✓ Approved — not yet paid</div>}
-                {t.active===false&&<div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginTop:2}}>Inactive tenant (link blocked)</div>}
-
-                {biStatus==="skip"&&(
-                  <div style={{background:"var(--accent-weak)",border:"1px solid var(--good-line)",color:"var(--slate)",borderRadius:8,padding:"10px 12px",fontSize:13,margin:"10px 0",fontWeight:600}}>
-                    ℹ Bi-monthly tenant — skip electricity this month. Next reading is due {label(shiftPeriod(period,1))}. You can still bill rent/misc below if needed.
-                  </div>
-                )}
-                {biStatus==="bill"&&(
-                  <div style={{fontSize:12,color:"var(--good)",margin:"6px 0 0"}}>Bi-monthly billing month — this reading covers two months of usage.</div>
-                )}
-
-                {hasReading&&(
-                  <>
-                    <div style={{margin:"10px 0"}}>
-                      <div style={{...compareBox,textAlign:"left",padding:"10px 12px"}}><div style={lblSm}>Reading submitted by tenant</div><div style={{fontSize:20,fontWeight:700}}>{submitted??"—"}</div></div>
-                    </div>
-                    {photoUrl&&<div style={{margin:"8px 0"}}><div style={{...lblSm,marginBottom:4}}>Meter photo</div><img src={photoUrl} alt="meter" onClick={()=>setPhotoView(photoUrl)} style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:10,border:"1px solid var(--line)",background:"var(--field)",cursor:"zoom-in"}}/><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>Tap photo to view full size</div></div>}
-                    {r&&r.unlockedForResubmit&&<div style={{fontSize:12,color:"var(--accent)",marginBottom:6}}>Unlocked — tenant can submit again.</div>}
-                    {!isApproved&&<button onClick={()=>resetSubmission(t.slug)} style={{...btn,background:"var(--card)",color:"var(--accent)",border:"1px solid var(--line)",marginTop:0,marginBottom:4,padding:"10px"}}>Unlock / reset tenant submission</button>}
-                  </>
-                )}
-                {!hasReading&&biStatus!=="skip"&&(
-                  <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 0"}}>
-                    <p style={{fontSize:13,color:"var(--muted)",margin:0,flex:1}}>No meter reading for {label(period)} yet. You can still bill rent + misc.</p>
-                    {!prop.isTest&&<a href={waUrl(t.phone,reminderText(t.name))} target="_blank" rel="noreferrer" style={{background:"var(--good)",color:"#fff",textDecoration:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>Remind</a>}
-                  </div>
-                )}
-                {!hasReading&&biStatus==="skip"&&<p style={{fontSize:13,color:"var(--muted)",margin:"8px 0 0"}}>Bi-monthly off month — no reading needed.</p>}
-
-                {/* Readings row — always visible */}
-                <div style={{display:"flex",gap:8,alignItems:"flex-end",margin:"8px 0"}}>
-                  <div style={{flex:1}}>
-                    <label style={lblSm}>Previous {prev[t.slug]?"(auto)":""}</label>
-                    <div style={{position:"relative"}}>
-                      <input inputMode="numeric" value={prev[t.slug]||""} onChange={e=>setPrev({...prev,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved||!prevUnlocked[t.slug]} style={{...inpSm,paddingRight:34,background:(isApproved||!prevUnlocked[t.slug])?"var(--accent-weak)":"#fff",color:"var(--ink)"}} placeholder="0"/>
-                      {!isApproved&&(
-                        <button type="button" onClick={()=>setPrevUnlocked({...prevUnlocked,[t.slug]:!prevUnlocked[t.slug]})} aria-label={prevUnlocked[t.slug]?"Lock previous":"Edit previous"} style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",fontSize:15,padding:4,color:"var(--slate)"}}>
-                          {prevUnlocked[t.slug]?"🔓":"✏️"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{flex:1}}><label style={lblSm}>Current</label><input inputMode="numeric" value={override[t.slug]!==undefined?override[t.slug]:(saved&&saved.currentReading!=null?saved.currentReading:(submitted??""))} onChange={e=>setOverride({...override,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} disabled={isApproved} style={{...inpSm,background:isApproved?"var(--accent-weak)":"#fff"}}/></div>
-                  <div style={{textAlign:"center",minWidth:46}}><div style={{fontWeight:700,color:"var(--slate)"}}>{units??"—"}</div><div style={{fontSize:10,color:"var(--muted)"}}>units</div></div>
-                </div>
-
-                {/* Electricity amount — always visible */}
-                <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>Electricity: {units!=null?`${units} × ₹${prop.rate} = `:""}<strong style={{color:"var(--ink)"}}>{money(elec)}</strong></div>
-
-                {carry!==0&&(
-                  <div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>
-                    {carry>0?`Carried from last month: +${money(carry)} (was short)`:`Credit from last month: ${money(carry)} (overpaid)`}
-                  </div>
-                )}
-
-                {/* Rent + misc — override allowed */}
-                <div style={{display:"flex",gap:8}}>
-                  <div style={{flex:1}}><label style={lblSm}>Rent ₹</label><input inputMode="numeric" value={ex.rent} onChange={e=>setExtra(t.slug,"rent",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
-                  <div style={{flex:1}}><label style={lblSm}>Misc ₹</label><input inputMode="numeric" value={ex.misc} onChange={e=>setExtra(t.slug,"misc",e.target.value.replace(/[^0-9.]/g,""))} onBlur={()=>persistExtra(t.slug)} style={inpSm} placeholder="0"/></div>
-                </div>
-                <input value={ex.miscNote} onChange={e=>setExtra(t.slug,"miscNote",e.target.value)} onBlur={()=>persistExtra(t.slug)} style={{...inpSm,marginTop:6}} placeholder="Misc note (e.g. water, repair)"/>
-
-                {!isApproved?(
-                  <button onClick={()=>setConfirmSlug(t.slug)} style={{...btn,background:"var(--slate)",marginTop:10}} disabled={!hasReading&&rent===0&&misc===0}>Approve bill</button>
-                ):(
-                  <div style={{marginTop:12}}>
-                    <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>{elec!=null&&<>Electricity {money(elec)} · </>}Rent {money(rent)} · Misc {money(misc)}{carry!==0?` · Adj ${money(carry)}`:""} → <strong style={{color:"var(--ink)"}}>{money((elec||0)+rent+misc+carry)}</strong></div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <button onClick={()=>unApprove(t.slug)} style={{...btn,background:"var(--card)",color:"var(--slate)",border:"1px solid var(--line)",width:"auto",padding:"12px 14px",marginTop:0}}>Edit</button>
-                      <a href={waUrl(t.phone, waText(prop.name,t.name,[...(elec!=null?[{label:`Electricity (${units} units)`,amount:elec}]:[]),{label:"Rent",amount:rent},...(misc>0?[{label:"Misc"+(ex.miscNote?` (${ex.miscNote})`:""),amount:misc}]:[]),...(carry!==0?[{label:carry>0?"Previous balance":"Previous credit",amount:carry}]:[])],(elec||0)+rent+misc+carry, effective!=null?{previous:Number(prev[t.slug]||0),current:effective,units}:null))} target="_blank" rel="noreferrer" style={{...btn,textDecoration:"none",textAlign:"center",flex:1,background:"var(--good)",marginTop:0}}>Send bill on WhatsApp</a>
-                    </div>
-                    <div style={{marginTop:12}}>
-                      <label style={lblSm}>Amount actually paid ₹ (leave blank if paid in full)</label>
-                      <input inputMode="numeric" value={paidAmt[t.slug]??""} onChange={e=>setPaidAmt({...paidAmt,[t.slug]:e.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round((elec||0)+rent+misc+carry))}/>
-                      {paidAmt[t.slug]!==undefined&&paidAmt[t.slug]!==""&&(()=>{ const out=Math.round((elec||0)+rent+misc+carry-Number(paidAmt[t.slug])); return <div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Overpaid ${money(-out)} — credit next month`:"Settled exactly"}</div>; })()}
-                    </div>
-                    <div style={{marginTop:14}}>
-                      <SlideToPay onConfirm={async()=>{
-                        setExtra(t.slug,"paid",true);
-                        const bill=await saveOneBill(pkey,prop,t,true);
-                        setData(prev=>prev?{...prev,bills:{...prev.bills,[t.slug]:bill}}:prev);
-                        persistExtra(t.slug);
-                      }}/>
-                    </div>
-                  </div>
-                )}
+                {open&&<div style={{padding:"0 14px 14px",borderTop:"1px solid var(--hair)"}}>{renderBillDetail(pkey,prop,t,{onDone:()=>setExpandedBill(x=>({...x,[t.slug]:false}))})}</div>}
               </div>
             );
           })}
@@ -758,35 +894,32 @@ export default function Admin(){
 
       {data&&(
         <div style={{marginTop:24}}>
-          <button onClick={async()=>{
-            setSaving(true); setSavedMsg("");
-            const bills=[];
-            Object.entries(data.properties).forEach(([pkey,prop])=>{
-              prop.tenants.forEach((t)=>{
-                if(!approved[t.slug]) return;
-                const b=buildBill(pkey,prop,t);
-                if(b.currentReading==null && b.rent===0 && b.misc===0) return;
-                bills.push(b);
-              });
-            });
-            if(bills.length===0){ setSavedMsg("Approve at least one bill first."); setSaving(false); return; }
-            try{
-              const res=await fetch("/api/readings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save-bill",pw,period,bills})});
-              if(!res.ok) throw new Error();
-              setSavedMsg(`Saved ${bills.length} bill(s) for ${label(period)}.`);
-              await fetchPeriod(period,pw);
-            }catch{ setSavedMsg("Could not save. Try again."); }
-            setSaving(false);
-          }} style={{...btn,background:"var(--ink)"}} disabled={saving}>{saving?"Saving…":"Save all approved bills to history"}</button>
-          {savedMsg&&<p style={{fontSize:13,color:"var(--good)",textAlign:"center",marginTop:8}}>{savedMsg}</p>}
-
-          <div style={{display:"flex",gap:8,marginTop:16}}>
+          <div style={{display:"flex",gap:8}}>
             <a href={`/api/report?scope=month&period=${period}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ This month (CSV)</a>
             <a href={`/api/report?scope=year&year=${period.split("-")[0]}&pw=${encodeURIComponent(pw)}`} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",textDecoration:"none",textAlign:"center",marginTop:0}}>⬇ Full year (CSV)</a>
           </div>
-          <p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginTop:6}}>Reports include only bills saved to history. Opens as a spreadsheet.</p>
+          <p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginTop:6}}>Approving a bill saves it to history automatically. CSV opens as a spreadsheet.</p>
         </div>
       )}
+
+      {/* MOBILE: billing detail sheet */}
+      {billSheet&&(()=>{ const f=findT(billSheet); if(!f) return null; const c=computeBill(f.pkey,f.prop,f.t); return (
+        <div style={{position:"fixed",inset:0,zIndex:45,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+          <div onClick={()=>setBillSheet(null)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)"}}/>
+          <div style={{position:"relative",background:"var(--card)",borderTopLeftRadius:18,borderTopRightRadius:18,borderTop:"1px solid var(--line)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",flexShrink:0}}><div style={{width:40,height:4,borderRadius:999,background:"var(--line)"}}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 16px 10px",flexShrink:0}}>
+              <strong style={{fontSize:15,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.t.name}</strong>
+              {statusPill(c.isApproved,c.hasReading,false)}
+              {c.total!=null&&<span style={{fontSize:16,fontWeight:600,color:c.isApproved?"var(--good)":"var(--ink)"}}>{money(c.total)}</span>}
+            </div>
+            <div style={{overflowY:"auto",padding:"0 16px 16px"}}>{renderBillDetail(f.pkey,f.prop,f.t,{onDone:()=>setBillSheet(null)})}</div>
+            <div style={{padding:"12px 16px calc(12px + env(safe-area-inset-bottom))",borderTop:"1px solid var(--line)",flexShrink:0}}>
+              <button onClick={()=>setBillSheet(null)} style={{...btn,background:"var(--field)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0}}>Close</button>
+            </div>
+          </div>
+        </div>
+      );})()}
     </>
     );
   };
@@ -897,7 +1030,7 @@ export default function Admin(){
     : { "--paper":"#fafafa","--card":"#ffffff","--elev":"#f6f6f6","--ink":"#0a0a0a","--muted":"#666666","--faint":"#8f8f8f","--line":"#eaeaea","--hair":"#f2f2f2","--field":"#fafafa","--slate":"#0068d6","--accent":"#b45309","--good":"#0f7b34","--good-bg":"#edf7f0","--good-line":"#c6e5cf","--warn-bg":"#fff8eb","--warn-line":"#f5e0b3","--accent-weak":"#f4f9ff","--primary-bg":"#0a0a0a","--primary-fg":"#ffffff","--shadow":"0 1px 2px rgba(0,0,0,0.04)" };
 
   // Month summary for the rail (real values from saved bills / readings).
-  let sumBilled=0,sumCollected=0,paidCount=0,tenantCount=0,noReadingCount=0; const attention=[];
+  let sumBilled=0,sumCollected=0,paidCount=0,tenantCount=0,noReadingCount=0,sumUnits=0; const attention=[]; const unitsByProp={};
   if(data){
     Object.entries(data.properties).forEach(([pk,prop])=>{
       if(prop.isTest) return;
@@ -907,13 +1040,24 @@ export default function Admin(){
         const r=data.readings?data.readings[t.slug]:null;
         if(b){ sumBilled+=b.amount||0; if(b.paid){ sumCollected+=(b.paidAmount!=null?b.paidAmount:b.amount); paidCount++; } }
         if(!r) noReadingCount++;
-        const ai=r&&r.aiReading!=null?r.aiReading:null;
-        if(ai!=null&&r&&Number(ai)!==Number(r.reading)&&!(b&&b.paid)) attention.push({name:t.name,kind:"mismatch"});
+        // A submitted reading that you haven't approved yet needs your review.
+        if(r&&!approved[t.slug]&&!(b&&b.paid)) attention.push({name:t.name,kind:"review"});
+        // Units used this month — mirrors each card: effective current − previous.
+        // Uses live reading before approval so the total grows as photos come in.
+        const ov=override[t.slug];
+        const submitted=r?r.reading:null;
+        const effective= ov!==undefined&&ov!==""?Number(ov): (b&&b.currentReading!=null?b.currentReading:(submitted!=null?submitted:null));
+        const prevV=Number(prev[t.slug]||0);
+        const u= effective==null?0:Math.round(Math.max(0,effective-prevV)*10)/10;
+        unitsByProp[pk]=(unitsByProp[pk]||0)+u;
+        sumUnits+=u;
       });
     });
   }
   const outstanding=sumBilled-sumCollected;
   const collectedPct= sumBilled>0 ? Math.round((sumCollected/sumBilled)*100) : 0;
+  sumUnits=Math.round(sumUnits*10)/10;
+  const propUnits= data ? Object.entries(data.properties).filter(([pk,p])=>!p.isTest).map(([pk,p])=>({name:p.name, units:Math.round((unitsByProp[pk]||0)*10)/10})) : [];
   const propsForNav = (data&&data.properties) || reg || null;
   const dotColors=["var(--good)","var(--slate)","var(--faint)","var(--accent)"];
 
@@ -940,6 +1084,37 @@ export default function Admin(){
       <button onClick={async()=>{ const p=shiftPeriod(period,1); setPeriod(p); if(view==="staff"){await loadStaff(p);}else{await fetchPeriod(p,pw);} }} style={stepBtn} aria-label="Next month">›</button>
     </div>
   );
+  // Collection summary — rendered in the desktop rail AND inline on mobile (where the rail is hidden).
+  const CollectionSummary=()=>(
+    <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{label(period)}</div>
+        <div style={{fontSize:12,color:"var(--faint)"}}>{paidCount} of {tenantCount} paid</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        <div style={{height:6,borderRadius:999,background:"var(--elev)",overflow:"hidden",display:"flex"}}><div style={{width:collectedPct+"%",background:"var(--good)"}}/></div>
+        <div style={{fontSize:11,color:"var(--faint)"}}>{collectedPct}% collected</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,borderTop:"1px solid var(--hair)",paddingTop:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <span style={{fontSize:13,color:"var(--muted)"}}>Units this month</span>
+          <span style={{fontSize:14,fontWeight:600,color:"var(--slate)"}}>{sumUnits} units</span>
+        </div>
+        {propUnits.map((p)=>(
+          <div key={p.name} style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:12,color:"var(--faint)"}}>{p.name}</span>
+            <span style={{fontSize:12,fontFamily:"'Geist Mono', ui-monospace, Menlo, monospace",color:"var(--muted)"}}>{p.units} units</span>
+          </div>
+        ))}
+        <div style={{fontSize:11,color:"var(--faint)",lineHeight:1.45}}>Total sub-meter units recorded this month — updates as readings come in. Use it to cross-check the utility bill.</div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{...themeVars, background:"var(--paper)", color:"var(--ink)", minHeight:"100vh"}}>
@@ -962,9 +1137,14 @@ export default function Admin(){
         .bottomnav{ display:none; }
         .navbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; border:none; background:transparent; color:var(--muted); font-size:11px; font-weight:500; cursor:pointer; border-radius:8px; }
         .navbtn.active{ color:var(--ink); }
+        .mobileSummary{ display:none; }
+        .tenantCards{ display:none; }
         @media (max-width: 899px){
           .console{ display:block; }
           .sidebar,.rail{ display:none; }
+          .mobileSummary{ display:block; margin-bottom:16px; }
+          .tenantTable,.detailPanel{ display:none; }
+          .tenantCards{ display:block; }
           .topbar{ position:static; min-height:auto; padding:14px 16px; flex-wrap:wrap; }
           .content{ display:block; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); max-width:600px; margin:0 auto; }
           .bottomnav{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; gap:4px; background:var(--card); border-top:1px solid var(--line); padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
@@ -1021,26 +1201,15 @@ export default function Admin(){
           </div>
 
           <div className="content">
+            {view==="billing"&&data&&(
+              <div className="mobileSummary"><CollectionSummary/></div>
+            )}
             <div className="contentmain">
               {view==="settlement"?renderSettlement():view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
             </div>
             {view==="billing"&&data&&(
               <aside className="rail">
-                <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,display:"flex",flexDirection:"column",gap:14}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{label(period)}</div>
-                    <div style={{fontSize:12,color:"var(--faint)"}}>{paidCount} of {tenantCount} paid</div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Billed</span><span style={{fontSize:14,fontWeight:500,color:"var(--ink)"}}>{money(sumBilled)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Collected</span><span style={{fontSize:14,fontWeight:500,color:"var(--good)"}}>{money(sumCollected)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"var(--muted)"}}>Outstanding</span><span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>{money(outstanding)}</span></div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <div style={{height:6,borderRadius:999,background:"var(--elev)",overflow:"hidden",display:"flex"}}><div style={{width:collectedPct+"%",background:"var(--good)"}}/></div>
-                    <div style={{fontSize:11,color:"var(--faint)"}}>{collectedPct}% collected</div>
-                  </div>
-                </div>
+                <CollectionSummary/>
                 <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:"16px 16px 4px",display:"flex",flexDirection:"column",marginTop:16}}>
                   <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",paddingBottom:12}}>Needs attention</div>
                   {noReadingCount>0&&(
@@ -1052,7 +1221,7 @@ export default function Admin(){
                   {attention.slice(0,4).map((a,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 0",borderTop:"1px solid var(--hair)"}}>
                       <span style={{width:6,height:6,borderRadius:999,background:"var(--accent)",marginTop:6,flexShrink:0}}/>
-                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{a.name}<div style={{fontSize:12,color:"var(--faint)"}}>Reading and photo differ — check before approving</div></div>
+                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{a.name}<div style={{fontSize:12,color:"var(--faint)"}}>Reading submitted — review and approve</div></div>
                     </div>
                   ))}
                   {noReadingCount===0&&attention.length===0&&<div style={{fontSize:13,color:"var(--faint)",padding:"12px 0",borderTop:"1px solid var(--hair)"}}>All caught up.</div>}
