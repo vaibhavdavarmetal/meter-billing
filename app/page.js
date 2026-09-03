@@ -98,6 +98,7 @@ function TenantForm() {
   const [finalSubmitted, setFinalSubmitted] = useState(false);
   const [finalReading, setFinalReading] = useState(null);
   const [settlement, setSettlement] = useState(null);
+  const [isTest, setIsTest] = useState(false); // practice property: bill auto-generates on submit
   const [theme, setTheme] = useState("dark"); // dark by default
 
   useEffect(() => {
@@ -116,6 +117,7 @@ function TenantForm() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (d && d.name) { setTenantName(d.name); setPropertyName(d.propertyName || ""); }
+          if (d && d.isTest) setIsTest(true);
           if (d && d.history) setHistory(d.history);
           if (d && d.lastUnits != null) setLastUnits(d.lastUnits);
           if (d && d.previousReading != null) setPreviousReading(d.previousReading);
@@ -209,6 +211,17 @@ function TenantForm() {
       if (res.status === 403) { setStage("inactive"); return; }
       if (res.status === 413) { setErr("The photo is too large. Please retake it a bit further back, or try again."); return; }
       if (!res.ok) throw new Error();
+      const okData = await res.json().catch(() => ({}));
+      // Practice property: the server auto-generates the bill and returns it. Show it right
+      // away in the upper card (same shape the tenant sees for any finalised bill).
+      if (okData && okData.bill) {
+        const b = okData.bill;
+        setDues({
+          amount: b.amount, paid: false, outstanding: b.amount, adjustment: 0,
+          carryIn: b.carryIn || 0, electricity: b.electricity || 0,
+          rent: b.rent || 0, misc: b.misc || 0, paidAmount: null, status: "pending",
+        });
+      }
       if (isFinal) { setFinalReading(reading); setFinalSubmitted(true); }
       setStage("done");
     } catch {
@@ -545,12 +558,12 @@ function TenantForm() {
         <div style={dashCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={cardLabel}>{awaitingStart ? "Starting meter reading" : `Meter reading · ${billingMonthLabel()}`}</div>
-            <span style={pill("good")}>Submitted</span>
+            <span style={pill("good")}>{isTest && !awaitingStart ? "Bill generated" : "Submitted"}</span>
           </div>
           <div style={{ fontFamily: MONO, fontSize: 34, color: "var(--fg)", marginTop: 8, letterSpacing: "-0.03em", lineHeight: 1 }}>
             {stage === "done" ? reading : (lockedInfo && lockedInfo.reading != null ? lockedInfo.reading : "—")}
           </div>
-          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 8 }}>{awaitingStart ? "Your starting reading is saved. From next month you'll submit monthly readings here." : "Your submitted reading. Contact the owner if it needs changing."}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 8 }}>{awaitingStart ? "Your starting reading is saved. From next month you'll submit monthly readings here." : isTest ? "Your bill was generated from this reading — see the amount above. The owner will verify your meter photo." : "Your submitted reading. Contact the owner if it needs changing."}</div>
           {stage === "done" && ownerWhatsapp && (
             <a
               href={`https://wa.me/${ownerWhatsapp}?text=${encodeURIComponent(`Hi, I've submitted my meter reading (${reading}) for ${billingMonthLabel()}${propertyName ? ` at ${propertyName}` : ""}${tenantName ? ` — ${tenantName}` : ""}. Please verify. Thank you.`)}`}
@@ -608,7 +621,7 @@ function TenantForm() {
             <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 4521" />
             {err && <p style={{ color: "#e5484d", fontSize: 14 }}>{err}</p>}
             <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid color-mix(in srgb, var(--primary-fg) 40%, transparent)", borderTopColor: "var(--primary-fg)", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Submitting…</>) : "Submit reading"}
+              {submitting ? (<><span style={{ width: 18, height: 18, border: "2.5px solid color-mix(in srgb, var(--primary-fg) 40%, transparent)", borderTopColor: "var(--primary-fg)", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> {isTest && !awaitingStart && !movingOut ? "Generating…" : "Submitting…"}</>) : (isTest && !awaitingStart && !movingOut ? "Generate bill" : "Submit reading")}
             </button>
           </div>
         )}
@@ -646,17 +659,19 @@ function TenantForm() {
       {showConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }} onClick={() => setShowConfirm(false)}>
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: 22, maxWidth: 340, width: "100%", textAlign: "left", color: "var(--fg)" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : movingOut ? `Submit final reading of ${reading}?` : `Submit reading of ${reading}?`}</h3>
+            <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>{awaitingStart ? `Submit starting reading of ${reading}?` : movingOut ? `Submit final reading of ${reading}?` : (isTest ? `Generate bill for reading ${reading}?` : `Submit reading of ${reading}?`)}</h3>
             <p style={{ fontSize: 14, color: "var(--sec)", margin: "0 0 18px", lineHeight: 1.5 }}>
               {awaitingStart
                 ? <>This will be saved as your <strong>starting meter reading</strong>. Please make sure it matches your meter today.</>
                 : movingOut
                 ? <>This is your <strong>final reading</strong> for move-out. Your owner will prepare the settlement from it. Please make sure it matches your meter today.</>
+                : isTest
+                ? <>Your <strong>bill will be generated instantly</strong> from this reading and shown above. The owner still verifies your meter photo. Please make sure your reading is correct.</>
                 : <>Once submitted, you <strong>cannot submit again</strong> for {billingMonthLabel()} unless the owner unlocks it. Please make sure your reading is correct.</>}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setShowConfirm(false)} style={{ ...submitBtn, background: "var(--card)", color: "var(--fg)", border: "1px solid var(--line)", marginTop: 0 }}>Cancel</button>
-              <button onClick={doSubmit} style={{ ...submitBtn, marginTop: 0 }}>Submit</button>
+              <button onClick={doSubmit} style={{ ...submitBtn, marginTop: 0 }}>{isTest && !awaitingStart && !movingOut ? "Generate bill" : "Submit"}</button>
             </div>
           </div>
         </div>
