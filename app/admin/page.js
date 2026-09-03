@@ -1040,8 +1040,8 @@ export default function Admin(){
         const r=data.readings?data.readings[t.slug]:null;
         if(b){ sumBilled+=b.amount||0; if(b.paid){ sumCollected+=(b.paidAmount!=null?b.paidAmount:b.amount); paidCount++; } }
         if(!r) noReadingCount++;
-        const ai=r&&r.aiReading!=null?r.aiReading:null;
-        if(ai!=null&&r&&Number(ai)!==Number(r.reading)&&!(b&&b.paid)) attention.push({name:t.name,kind:"mismatch"});
+        // A submitted reading that you haven't approved yet needs your review.
+        if(r&&!approved[t.slug]&&!(b&&b.paid)) attention.push({name:t.name,kind:"review"});
         // Units used this month — mirrors each card: effective current − previous.
         // Uses live reading before approval so the total grows as photos come in.
         const ov=override[t.slug];
@@ -1221,7 +1221,7 @@ export default function Admin(){
                   {attention.slice(0,4).map((a,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 0",borderTop:"1px solid var(--hair)"}}>
                       <span style={{width:6,height:6,borderRadius:999,background:"var(--accent)",marginTop:6,flexShrink:0}}/>
-                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{a.name}<div style={{fontSize:12,color:"var(--faint)"}}>Reading and photo differ — check before approving</div></div>
+                      <div style={{flex:1,fontSize:13,color:"var(--ink)"}}>{a.name}<div style={{fontSize:12,color:"var(--faint)"}}>Reading submitted — review and approve</div></div>
                     </div>
                   ))}
                   {noReadingCount===0&&attention.length===0&&<div style={{fontSize:13,color:"var(--faint)",padding:"12px 0",borderTop:"1px solid var(--hair)"}}>All caught up.</div>}
