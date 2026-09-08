@@ -102,6 +102,7 @@ export default function Admin(){
   const [agrBusy,setAgrBusy]=useState({}); // slug -> true while uploading agreement
   const [manageTab,setManageTab]=useState(null);   // active property key on the Tenants tab
   const [manageSel,setManageSel]=useState(null);    // {pk,i} tenant selected for the detail panel/sheet
+  const [manageProp,setManageProp]=useState(false); // true = editing the active property's settings (name/rate/contacts)
   const [sheetOpen,setSheetOpen]=useState(false);   // mobile bottom-sheet visibility
   const [copied,setCopied]=useState(null);          // slug whose link was just copied (transient)
   // ── Accounts locker ──
@@ -472,7 +473,7 @@ export default function Admin(){
     if(!reg) return <p style={{color:"var(--muted)"}}>{regMsg||"Loading tenants…"}</p>;
     const setProp=(pk,f,v)=>setReg({...reg,[pk]:{...reg[pk],[f]:v}});
     const setTen=(pk,i,f,v)=>{ const n=structuredClone(reg); n[pk].tenants[i][f]=v; setReg(n); };
-    const addTen=(pk)=>{ const n=structuredClone(reg); const ni=n[pk].tenants.length; n[pk].tenants.push({slug:pk+"-"+(ni+1),name:"New Tenant",rent:0,misc:0}); setReg(n); setManageSel({pk,i:ni}); setSheetOpen(true); };
+    const addTen=(pk)=>{ const n=structuredClone(reg); const ni=n[pk].tenants.length; n[pk].tenants.push({slug:pk+"-"+(ni+1),name:"New Tenant",rent:0,misc:0}); setReg(n); setManageProp(false); setManageSel({pk,i:ni}); setSheetOpen(true); };
     const removeTen=(pk,i)=>{ const t=reg[pk].tenants[i]; if(!window.confirm(`Remove ${t.name||"this tenant"}? This removes them from the list. Past bills and readings stay saved. You can re-add them later.`)) return; const n=structuredClone(reg); n[pk].tenants.splice(i,1); setReg(n); setManageSel(null); setSheetOpen(false); };
     const setContact=(pk,ci,f,v)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts[ci][f]=v; setReg(n); };
     const addContact=(pk)=>{ const n=structuredClone(reg); if(!n[pk].contacts) n[pk].contacts=[]; n[pk].contacts.push({label:"",name:"",phone:""}); setReg(n); };
@@ -588,6 +589,37 @@ export default function Admin(){
       );
     };
 
+    // Property settings form (name / rate / maintenance contacts) — property-level, edited in the same panel/sheet as tenants.
+    const renderPropForm=(pk)=>{
+      const p=reg[pk]; if(!p) return null;
+      return (
+        <div>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:12}}>Property settings</div>
+          <div style={{marginBottom:10}}><label style={lblSm}>Property name</label><input value={p.name} onChange={e=>setProp(pk,"name",e.target.value)} style={inpSm}/></div>
+          <div style={{marginBottom:10}}><label style={lblSm}>Electricity rate (₹ per unit)</label><input inputMode="decimal" value={p.rate??""} onChange={e=>setProp(pk,"rate",e.target.value.replace(/[^0-9.]/g,""))} style={{...inpSm,width:130}} placeholder="0"/></div>
+          <div style={{marginTop:6,paddingTop:12,borderTop:"1px solid var(--line)"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>Maintenance contacts</div>
+            <p style={{fontSize:12,color:"var(--faint)",margin:"0 0 8px"}}>Shared for the whole property (plumber, electrician, cleaner…).</p>
+            {(p.contacts||[]).map((c,ci)=>(
+              <div key={ci} style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
+                <input value={c.label||""} onChange={e=>setContact(pk,ci,"label",e.target.value)} style={{...inpSm,flex:"1 1 70px"}} placeholder="Role"/>
+                <input value={c.name||""} onChange={e=>setContact(pk,ci,"name",e.target.value)} style={{...inpSm,flex:"2 1 110px"}} placeholder="Name"/>
+                <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(pk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,flex:"1 1 100px"}} placeholder="Phone"/>
+                <button onClick={()=>removeContact(pk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 12px",cursor:"pointer"}}>✕</button>
+              </div>
+            ))}
+            <button onClick={()=>addContact(pk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"9px"}}>+ Add contact</button>
+          </div>
+        </div>
+      );
+    };
+
+    const editing = manageProp || !!sel;                 // panel/sheet has content
+    const openTenant=(i,sheet)=>{ setRegMsg(""); setManageProp(false); setManageSel({pk:activePk,i}); if(sheet) setSheetOpen(true); };
+    const openProp=()=>{ setRegMsg(""); setManageSel(null); setManageProp(true); if(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(max-width:899px)").matches) setSheetOpen(true); };
+    const saveManage=async(close)=>{ const ok=await save(); if(ok&&close) setSheetOpen(false); };
+    const panelBody = manageProp ? renderPropForm(activePk) : (sel ? renderDetail(activePk,sel.i) : null);
+
     return (
       <div>
         <p style={{fontSize:13,color:"var(--muted)"}}>Pick a property, then a tenant to edit their details. Rate and “Add tenant” belong to the selected property. Changes go live after you Save.</p>
@@ -613,7 +645,7 @@ export default function Admin(){
             flex-wrap (not overflow-x) so a long tab label can't force the whole column wider than the viewport on mobile. */}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:2}}>
           {keys.map(pk=>{ const p=reg[pk]; const on=pk===activePk; return (
-            <button key={pk} onClick={()=>{ setManageTab(pk); setManageSel(null); setSheetOpen(false); }} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px solid "+(on?"var(--ink)":"var(--line)"),background:on?"var(--ink)":"var(--card)",color:on?"var(--paper)":"var(--muted)",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+            <button key={pk} onClick={()=>{ setManageTab(pk); setManageSel(null); setManageProp(false); setSheetOpen(false); }} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px solid "+(on?"var(--ink)":"var(--line)"),background:on?"var(--ink)":"var(--card)",color:on?"var(--paper)":"var(--muted)",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               {p.name}{p.isTest?" · practice":""}
               <span style={{fontSize:11,opacity:.7}}>{p.tenants.length}</span>
             </button>
@@ -622,9 +654,12 @@ export default function Admin(){
 
         <div style={{display:"flex",gap:20,alignItems:"flex-start"}}>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,margin:"14px 0 12px"}}>
-              <input value={prop.name} onChange={e=>setProp(activePk,"name",e.target.value)} style={{...inp,fontWeight:700,flex:1}}/>
-              {!prop.isTest&&<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:12,color:"var(--muted)"}}>₹/unit</span><input inputMode="decimal" value={prop.rate??""} onChange={e=>setProp(activePk,"rate",e.target.value.replace(/[^0-9.]/g,""))} style={{...inpSm,width:70}}/></div>}
+            <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0 12px"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:17,fontWeight:700,letterSpacing:"-0.014em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prop.name}</div>
+                {!prop.isTest&&<div style={{fontSize:12,color:"var(--muted)",marginTop:2}}>₹{Number(prop.rate)||0}/unit · {(prop.contacts||[]).filter(c=>c&&(c.name||c.phone)).length} contact{((prop.contacts||[]).filter(c=>c&&(c.name||c.phone)).length)===1?"":"s"}</div>}
+              </div>
+              {!prop.isTest&&<button onClick={openProp} style={{display:"flex",alignItems:"center",gap:6,border:"1px solid "+(manageProp?"var(--ink)":"var(--line)"),background:manageProp?"var(--elev)":"var(--field)",color:"var(--ink)",borderRadius:9,padding:"9px 13px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H8a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V8a1.65 1.65 0 0 0 1.51 1H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Property settings</button>}
             </div>
 
             {/* WEB: table */}
@@ -634,7 +669,7 @@ export default function Admin(){
               </div>
               {prop.tenants.length===0&&<div style={{padding:"16px 14px",fontSize:13,color:"var(--faint)"}}>No tenants yet.</div>}
               {prop.tenants.map((t,i)=>{ const sp=statusPill(t); const on=sel&&sel.i===i; return (
-                <div key={i} onClick={()=>setManageSel({pk:activePk,i})} style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 104px",gap:12,alignItems:"center",padding:"11px 14px",borderTop:"1px solid var(--hair)",cursor:"pointer",background:on?"var(--elev)":"transparent"}}>
+                <div key={i} onClick={()=>openTenant(i,false)} style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 104px",gap:12,alignItems:"center",padding:"11px 14px",borderTop:"1px solid var(--hair)",cursor:"pointer",background:on?"var(--elev)":"transparent"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
                     <div style={avatar}>{initials(t.name)}</div>
                     <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}</div>
@@ -659,56 +694,45 @@ export default function Admin(){
                     <div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:t.active===false?"var(--muted)":"var(--ink)"}}>{t.name||"(unnamed)"}</div>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>{pillEl(sp)}{t.rent?<span style={{fontSize:12,color:"var(--muted)",fontFamily:mono}}>₹{Number(t.rent).toLocaleString("en-IN")}</span>:null}{t.agreementUrl?<span title="Agreement on file" style={{fontSize:12}}>📄</span>:null}</div>
                   </div>
-                  <button onClick={()=>{ setManageSel({pk:activePk,i}); setSheetOpen(true); }} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--ink)",borderRadius:9,padding:"9px 16px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Edit</button>
+                  <button onClick={()=>openTenant(i,true)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--ink)",borderRadius:9,padding:"9px 16px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Edit</button>
                 </div>
               );})}
             </div>
 
             {!prop.isTest&&<button onClick={()=>addTen(activePk)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:12}}>+ Add tenant to {prop.name}</button>}
-
-            {!prop.isTest&&(
-              <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid var(--line)"}}>
-                <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Maintenance contacts · {prop.name}</div>
-                <p style={{fontSize:12,color:"var(--faint)",marginTop:0,marginBottom:8}}>Shared for the whole property (plumber, electrician, cleaner…).</p>
-                {(prop.contacts||[]).map((c,ci)=>(
-                  <div key={ci} style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
-                    <input value={c.label||""} onChange={e=>setContact(activePk,ci,"label",e.target.value)} style={{...inpSm,flex:"1 1 80px"}} placeholder="Role"/>
-                    <input value={c.name||""} onChange={e=>setContact(activePk,ci,"name",e.target.value)} style={{...inpSm,flex:"2 1 120px"}} placeholder="Name"/>
-                    <input inputMode="tel" value={c.phone||""} onChange={e=>setContact(activePk,ci,"phone",e.target.value.replace(/[^0-9]/g,""))} style={{...inpSm,flex:"1 1 110px"}} placeholder="Phone"/>
-                    <button onClick={()=>removeContact(activePk,ci)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"#e5484d",borderRadius:8,padding:"0 12px",cursor:"pointer"}}>✕</button>
-                  </div>
-                ))}
-                <button onClick={()=>addContact(activePk)} style={{...btn,background:"var(--field)",color:"var(--slate)",border:"1px solid var(--line)",marginTop:4,padding:"9px"}}>+ Add contact</button>
-              </div>
-            )}
-
-            <button onClick={save} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
-            {regMsg&&<p style={{fontSize:13,color:regMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{regMsg}</p>}
           </div>
 
-          {/* WEB: detail panel */}
+          {/* WEB: detail panel — its own Save per record (tenant or property settings) */}
           <aside className="detailPanel" style={{width:340,flexShrink:0,position:"sticky",top:80}}>
-            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,minHeight:120}}>
-              {sel? renderDetail(activePk,sel.i) : (
-                <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
-                  <div style={{fontSize:24,marginBottom:8}}>👈</div>
-                  <div style={{fontSize:13}}>Select a tenant to view and edit their details.</div>
+            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",overflow:"hidden"}}>
+              <div style={{padding:16}}>
+                {editing? panelBody : (
+                  <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
+                    <div style={{fontSize:24,marginBottom:8}}>👈</div>
+                    <div style={{fontSize:13}}>Select a tenant, or open Property settings, to edit here.</div>
+                  </div>
+                )}
+              </div>
+              {editing&&(
+                <div style={{padding:"12px 16px",borderTop:"1px solid var(--line)",display:"flex",alignItems:"center",gap:10}}>
+                  <button onClick={()=>saveManage(false)} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>{manageProp?"Save property":"Save tenant"}</button>
+                  {regMsg&&<span style={{fontSize:12,color:regMsg.startsWith("Saved")?"var(--good)":"#e5484d",whiteSpace:"nowrap"}}>{regMsg.startsWith("Saved")?"Saved ✓":regMsg}</span>}
                 </div>
               )}
             </div>
           </aside>
         </div>
 
-        {/* MOBILE: bottom sheet */}
-        {sheetOpen&&sel&&(
+        {/* MOBILE: bottom sheet (tenant OR property settings) */}
+        {sheetOpen&&editing&&(
           <div style={{position:"fixed",inset:0,zIndex:45,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
             <div onClick={()=>setSheetOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)"}}/>
             <div style={{position:"relative",background:"var(--card)",borderTopLeftRadius:18,borderTopRightRadius:18,borderTop:"1px solid var(--line)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
               <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",flexShrink:0}}><div style={{width:40,height:4,borderRadius:999,background:"var(--line)"}}/></div>
-              <div style={{overflowY:"auto",padding:"6px 16px 16px"}}>{renderDetail(activePk,sel.i)}</div>
+              <div style={{overflowY:"auto",padding:"6px 16px 16px"}}>{panelBody}</div>
               <div style={{display:"flex",gap:8,padding:"12px 16px calc(12px + env(safe-area-inset-bottom))",borderTop:"1px solid var(--line)",flexShrink:0}}>
                 <button onClick={()=>setSheetOpen(false)} style={{...btn,background:"var(--field)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0,width:"auto",padding:"13px 18px"}}>Close</button>
-                <button onClick={async()=>{ await save(); setSheetOpen(false); }} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>Save changes</button>
+                <button onClick={()=>saveManage(true)} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>{manageProp?"Save property":"Save tenant"}</button>
               </div>
             </div>
           </div>
@@ -746,10 +770,10 @@ export default function Admin(){
     const removeField=(idx,fi)=> setAccounts(a=>{ const n=structuredClone(a); n.items[idx].fields.splice(fi,1); return n; });
     const addAccount=(group)=>{ const n=structuredClone(accounts); const id="acct-"+Date.now().toString(36); n.items.push({id,group,name:"",type:"",accountNo:"",fields:[],loginUrl:"",username:"",notes:""}); const idx=n.items.length-1; setAccounts(n); setAcctSel(idx); if(isMobile()) setAcctSheet(true); };
     const removeAccount=(idx)=>{ const it=accounts.items[idx]; if(!window.confirm(`Delete “${it.name||"this account"}”? This can't be undone.`)) return; const n=structuredClone(accounts); n.items.splice(idx,1); setAccounts(n); setAcctSel(null); setAcctSheet(false); saveAccountsList(n); };
-    const addGroup=()=>{ const name=(window.prompt("New group name (e.g. Family, Office)")||"").trim(); if(!name) return; if(groups.includes(name)){ setAcctTab(name); return; } const n=structuredClone(accounts); n.groups.push(name); setAccounts(n); setAcctTab(name); };
+    const addGroup=()=>{ const name=(window.prompt("New group name (e.g. Family, Office)")||"").trim(); if(!name) return; if(groups.includes(name)){ setAcctTab(name); return; } const n=structuredClone(accounts); n.groups.push(name); setAccounts(n); setAcctTab(name); saveAccountsList(n); };
     // Persist a specific blob (used by delete so it doesn't rely on async state).
     const saveAccountsList=async(blob)=>{ try{ await fetch("/api/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,accounts:blob})}); }catch{} };
-    const openAcct=(idx)=>{ setAcctSel(idx); if(isMobile()) setAcctSheet(true); };
+    const openAcct=(idx)=>{ setAcctMsg(""); setAcctSel(idx); if(isMobile()) setAcctSheet(true); };
     const closeAndSave=async()=>{ const ok=await saveAccounts(); if(ok){ setAcctSheet(false); } };
 
     const TYPE_SUGGESTIONS=["Electricity","Water","Gas","Internet","Bank","Insurance","Pension","Subscription","Society"];
@@ -852,17 +876,23 @@ export default function Admin(){
               </div>
             ))}
             {activeGroup&&<button onClick={()=>addAccount(activeGroup)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:12}}>+ Add account to {activeGroup}</button>}
-
-            <button onClick={saveAccounts} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
-            {acctMsg&&<p style={{fontSize:13,color:acctMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{acctMsg}</p>}
+            {acctMsg&&!acctMsg.startsWith("Saved")&&<p style={{fontSize:13,color:"#e5484d",textAlign:"center",marginTop:8}}>{acctMsg}</p>}
           </div>
 
           <aside className="detailPanel" style={{width:360,flexShrink:0,position:"sticky",top:80}}>
-            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,minHeight:120}}>
-              {sel!=null? renderAcctForm(sel) : (
-                <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
-                  <div style={{fontSize:24,marginBottom:8}}>🗂️</div>
-                  <div style={{fontSize:13}}>Select an account to view and edit its details, or add one.</div>
+            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",overflow:"hidden"}}>
+              <div style={{padding:16}}>
+                {sel!=null? renderAcctForm(sel) : (
+                  <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
+                    <div style={{fontSize:24,marginBottom:8}}>🗂️</div>
+                    <div style={{fontSize:13}}>Select an account to view and edit its details, or add one.</div>
+                  </div>
+                )}
+              </div>
+              {sel!=null&&(
+                <div style={{padding:"12px 16px",borderTop:"1px solid var(--line)",display:"flex",alignItems:"center",gap:10}}>
+                  <button onClick={()=>saveAccounts()} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>Save account</button>
+                  {acctMsg&&<span style={{fontSize:12,color:acctMsg.startsWith("Saved")?"var(--good)":"#e5484d",whiteSpace:"nowrap"}}>{acctMsg.startsWith("Saved")?"Saved ✓":acctMsg}</span>}
                 </div>
               )}
             </div>
