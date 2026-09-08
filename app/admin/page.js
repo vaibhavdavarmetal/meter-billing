@@ -104,6 +104,13 @@ export default function Admin(){
   const [manageSel,setManageSel]=useState(null);    // {pk,i} tenant selected for the detail panel/sheet
   const [sheetOpen,setSheetOpen]=useState(false);   // mobile bottom-sheet visibility
   const [copied,setCopied]=useState(null);          // slug whose link was just copied (transient)
+  // ── Accounts locker ──
+  const [accounts,setAccounts]=useState(null);      // {groups:[], items:[]}
+  const [acctMsg,setAcctMsg]=useState("");
+  const [acctTab,setAcctTab]=useState(null);        // active group name
+  const [acctSel,setAcctSel]=useState(null);        // index into items for the open detail, or "new"
+  const [acctSheet,setAcctSheet]=useState(false);   // mobile bottom sheet
+  const [acctCopied,setAcctCopied]=useState(null);  // "i:field" just copied (transient)
 
   useEffect(()=>{
     try{ const t=window.localStorage.getItem("admin-theme"); if(t) setTheme(t); }catch{}
@@ -154,6 +161,27 @@ export default function Admin(){
     catch{ setRegMsg("Could not load tenant list."); }
   };
   const openManage=async()=>{ setView("manage"); if(!reg) await loadRegistry(); loadPendingStarts(); };
+  const loadAccounts=async()=>{
+    setAcctMsg("");
+    try{
+      const res=await fetch(`/api/accounts?pw=${encodeURIComponent(pw)}`);
+      if(!res.ok) throw new Error();
+      const d=await res.json();
+      const a=d.accounts||{groups:[],items:[]};
+      setAccounts(a);
+      if(!acctTab||!a.groups.includes(acctTab)) setAcctTab(a.groups[0]||null);
+    }catch{ setAcctMsg("Could not load accounts."); }
+  };
+  const openAccounts=async()=>{ setView("accounts"); setAcctSel(null); setAcctSheet(false); if(!accounts) await loadAccounts(); };
+  const saveAccounts=async()=>{
+    setAcctMsg("");
+    try{
+      const res=await fetch("/api/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,accounts})});
+      const d=await res.json();
+      if(!res.ok){ setAcctMsg(d.error||"Could not save."); return false; }
+      setAcctMsg("Saved. Changes are live."); return true;
+    }catch{ setAcctMsg("Could not save."); return false; }
+  };
 
   const uploadAgreement=async(slug,file)=>{
     if(!file) return;
@@ -581,8 +609,9 @@ export default function Admin(){
           </div>
         )}
 
-        {/* Property tabs — drive the whole page; rate + Add tenant + Maintenance belong to the active one */}
-        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2,marginBottom:2}}>
+        {/* Property tabs — drive the whole page; rate + Add tenant + Maintenance belong to the active one.
+            flex-wrap (not overflow-x) so a long tab label can't force the whole column wider than the viewport on mobile. */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:2}}>
           {keys.map(pk=>{ const p=reg[pk]; const on=pk===activePk; return (
             <button key={pk} onClick={()=>{ setManageTab(pk); setManageSel(null); setSheetOpen(false); }} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px solid "+(on?"var(--ink)":"var(--line)"),background:on?"var(--ink)":"var(--card)",color:on?"var(--paper)":"var(--muted)",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               {p.name}{p.isTest?" · practice":""}
@@ -689,6 +718,175 @@ export default function Admin(){
   };
 
   // ── BILLING ──
+  const renderAccounts=()=>{
+    if(!accounts) return <p style={{color:"var(--muted)"}}>{acctMsg||"Loading accounts…"}</p>;
+    const mono="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+    const groups=accounts.groups||[];
+    const activeGroup=(acctTab&&groups.includes(acctTab))?acctTab:groups[0];
+    const itemsInGroup=accounts.items.map((it,idx)=>({it,idx})).filter(x=>x.it.group===activeGroup);
+    const isMobile=()=> typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(max-width:899px)").matches;
+    const sel=(acctSel!=null&&accounts.items[acctSel])?acctSel:null;
+
+    const typeColor=(type)=>{ const t=(type||"").toLowerCase();
+      if(/elec/.test(t)) return "var(--accent)";
+      if(/water/.test(t)) return "var(--slate)";
+      if(/pension|epf|eps/.test(t)) return "var(--good)";
+      if(/gas/.test(t)) return "var(--accent)";
+      if(/net|internet|broadband|wifi/.test(t)) return "var(--slate)";
+      if(/bank|savings/.test(t)) return "var(--slate)";
+      if(/insur|policy|lic/.test(t)) return "var(--good)";
+      if(/society|rwa|maint/.test(t)) return "var(--good)";
+      return "var(--faint)"; };
+    const typePill=(type)=> type?(<span style={{display:"inline-flex",alignItems:"center",gap:6,height:22,padding:"0 9px",borderRadius:999,fontSize:11,fontWeight:600,color:typeColor(type),background:`color-mix(in srgb, ${typeColor(type)} 14%, transparent)`,border:`1px solid color-mix(in srgb, ${typeColor(type)} 45%, transparent)`}}><span style={{width:5,height:5,borderRadius:999,background:typeColor(type)}}/>{type}</span>):null;
+    const copyVal=(key,text)=>{ try{ navigator.clipboard.writeText(text); setAcctCopied(key); setTimeout(()=>setAcctCopied(c=>c===key?null:c),1500); }catch{} };
+
+    const setItem=(idx,patch)=> setAccounts(a=>{ const n=structuredClone(a); n.items[idx]={...n.items[idx],...patch}; return n; });
+    const setField=(idx,fi,k,v)=> setAccounts(a=>{ const n=structuredClone(a); n.items[idx].fields[fi][k]=v; return n; });
+    const addField=(idx)=> setAccounts(a=>{ const n=structuredClone(a); if(!Array.isArray(n.items[idx].fields)) n.items[idx].fields=[]; n.items[idx].fields.push({label:"",value:""}); return n; });
+    const removeField=(idx,fi)=> setAccounts(a=>{ const n=structuredClone(a); n.items[idx].fields.splice(fi,1); return n; });
+    const addAccount=(group)=>{ const n=structuredClone(accounts); const id="acct-"+Date.now().toString(36); n.items.push({id,group,name:"",type:"",accountNo:"",fields:[],loginUrl:"",username:"",notes:""}); const idx=n.items.length-1; setAccounts(n); setAcctSel(idx); if(isMobile()) setAcctSheet(true); };
+    const removeAccount=(idx)=>{ const it=accounts.items[idx]; if(!window.confirm(`Delete “${it.name||"this account"}”? This can't be undone.`)) return; const n=structuredClone(accounts); n.items.splice(idx,1); setAccounts(n); setAcctSel(null); setAcctSheet(false); saveAccountsList(n); };
+    const addGroup=()=>{ const name=(window.prompt("New group name (e.g. Family, Office)")||"").trim(); if(!name) return; if(groups.includes(name)){ setAcctTab(name); return; } const n=structuredClone(accounts); n.groups.push(name); setAccounts(n); setAcctTab(name); };
+    // Persist a specific blob (used by delete so it doesn't rely on async state).
+    const saveAccountsList=async(blob)=>{ try{ await fetch("/api/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw,accounts:blob})}); }catch{} };
+    const openAcct=(idx)=>{ setAcctSel(idx); if(isMobile()) setAcctSheet(true); };
+    const closeAndSave=async()=>{ const ok=await saveAccounts(); if(ok){ setAcctSheet(false); } };
+
+    const TYPE_SUGGESTIONS=["Electricity","Water","Gas","Internet","Bank","Insurance","Pension","Subscription","Society"];
+
+    // Focus-safe detail form (called, not mounted).
+    const renderAcctForm=(idx)=>{
+      const it=accounts.items[idx]; if(!it) return null;
+      return (
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <div style={{fontSize:15,fontWeight:600,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.name||"New account"}</div>
+            <button type="button" onClick={()=>removeAccount(idx)} title="Delete account" style={{width:30,height:30,border:"1px solid var(--line)",borderRadius:8,background:"var(--field)",color:"#e5484d",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg></button>
+          </div>
+
+          <div style={{marginBottom:10}}>
+            <label style={lblSm}>Group</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {groups.map(g=>(
+                <button key={g} type="button" onClick={()=>setItem(idx,{group:g})} style={{padding:"7px 12px",borderRadius:999,fontSize:12,fontWeight:600,cursor:"pointer",border:"1px solid "+(it.group===g?"var(--ink)":"var(--line)"),background:it.group===g?"var(--ink)":"var(--field)",color:it.group===g?"var(--paper)":"var(--muted)"}}>{g}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{marginBottom:10}}><label style={lblSm}>Name</label><input value={it.name} onChange={e=>setItem(idx,{name:e.target.value})} style={inpSm} placeholder="e.g. BESCOM — Electricity"/></div>
+
+          <div style={{marginBottom:10}}>
+            <label style={lblSm}>Type <span style={{textTransform:"none",letterSpacing:0,color:"var(--faint)",fontWeight:400}}>— pick one or type your own</span></label>
+            <input value={it.type} onChange={e=>setItem(idx,{type:e.target.value})} style={{...inpSm,marginBottom:6}} placeholder="e.g. Pension"/>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {TYPE_SUGGESTIONS.map(ts=>(
+                <button key={ts} type="button" onClick={()=>setItem(idx,{type:ts})} style={{padding:"5px 10px",borderRadius:999,fontSize:11,fontWeight:600,cursor:"pointer",border:"1px solid "+(it.type===ts?typeColor(ts):"var(--line)"),background:it.type===ts?`color-mix(in srgb, ${typeColor(ts)} 16%, transparent)`:"var(--field)",color:it.type===ts?typeColor(ts):"var(--muted)"}}>{ts}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{marginBottom:10}}><label style={lblSm}>Account / ID number</label><input value={it.accountNo} onChange={e=>setItem(idx,{accountNo:e.target.value})} style={{...inpSm,fontFamily:mono}} placeholder="the main number you quote"/></div>
+
+          <div style={{marginBottom:10}}>
+            <label style={lblSm}>Details <span style={{textTransform:"none",letterSpacing:0,color:"var(--faint)",fontWeight:400}}>— name your own fields (PPO no, IFSC…)</span></label>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {(it.fields||[]).map((f,fi)=>(
+                <div key={fi} style={{display:"flex",gap:8}}>
+                  <input value={f.label} onChange={e=>setField(idx,fi,"label",e.target.value)} style={{...inpSm,flex:"0 0 40%"}} placeholder="Label"/>
+                  <input value={f.value} onChange={e=>setField(idx,fi,"value",e.target.value)} style={{...inpSm,flex:1,fontFamily:mono}} placeholder="Value"/>
+                  <button type="button" onClick={()=>removeField(idx,fi)} style={{flex:"0 0 auto",width:38,border:"1px solid var(--line)",borderRadius:9,background:"var(--field)",color:"var(--faint)",cursor:"pointer"}}>✕</button>
+                </div>
+              ))}
+              <button type="button" onClick={()=>addField(idx)} style={{alignSelf:"flex-start",border:"1px dashed var(--line)",background:"var(--accent-weak)",color:"var(--slate)",borderRadius:9,padding:"8px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add field</button>
+            </div>
+          </div>
+
+          <div style={{marginBottom:10}}><label style={lblSm}>Login page <span style={{textTransform:"none",letterSpacing:0,color:"var(--faint)",fontWeight:400}}>(optional)</span></label><input value={it.loginUrl} onChange={e=>setItem(idx,{loginUrl:e.target.value})} style={inpSm} placeholder="https://…"/></div>
+          <div style={{marginBottom:10}}><label style={lblSm}>Username / login ID <span style={{textTransform:"none",letterSpacing:0,color:"var(--faint)",fontWeight:400}}>(no passwords)</span></label><input value={it.username} onChange={e=>setItem(idx,{username:e.target.value})} style={inpSm} placeholder="e.g. registered email or ID"/></div>
+          <div style={{marginBottom:10}}><label style={lblSm}>Notes</label><textarea value={it.notes} onChange={e=>setItem(idx,{notes:e.target.value})} rows={3} style={{...inpSm,resize:"vertical",lineHeight:1.5}} placeholder="Due dates, registered mobile, who to pay…"/></div>
+
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:"var(--faint)",lineHeight:1.5,padding:"10px 12px",border:"1px dashed var(--line)",borderRadius:10}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>Reference details only — no passwords or PINs. Keep those in a password manager.</span>
+          </div>
+        </div>
+      );
+    };
+
+    const acctField=(label,value,key)=> value?(
+      <div><span style={{...lblSm}}>{label}</span><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontFamily:mono,fontSize:14,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value}</span><button type="button" onClick={(e)=>{e.stopPropagation();copyVal(key,value);}} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--slate)",borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0}}>{acctCopied===key?"✓":"Copy"}</button></div></div>
+    ):null;
+
+    return (
+      <div>
+        <p style={{fontSize:13,color:"var(--muted)",maxWidth:"62ch"}}>Reference details for your utility and service accounts — consumer numbers, meter numbers, logins — grouped however you like. Passwords aren't stored here; keep those in a password manager.</p>
+
+        {/* Group tabs — wrap on mobile so they never force the page wide */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:2,marginTop:4}}>
+          {groups.map(g=>{ const on=g===activeGroup; const count=accounts.items.filter(x=>x.group===g).length; return (
+            <button key={g} onClick={()=>{ setAcctTab(g); setAcctSel(null); setAcctSheet(false); }} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px solid "+(on?"var(--ink)":"var(--line)"),background:on?"var(--ink)":"var(--card)",color:on?"var(--paper)":"var(--muted)",fontSize:13,fontWeight:600,cursor:"pointer"}}>{g}<span style={{fontSize:11,opacity:.7}}>{count}</span></button>
+          );})}
+          <button onClick={addGroup} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",padding:"8px 14px",borderRadius:9,border:"1px dashed var(--line)",background:"transparent",color:"var(--slate)",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ New group</button>
+        </div>
+
+        <div style={{display:"flex",gap:20,alignItems:"flex-start",marginTop:14}}>
+          <div style={{flex:1,minWidth:0}}>
+            {itemsInGroup.length===0&&<p style={{fontSize:13,color:"var(--faint)"}}>No accounts in {activeGroup||"this group"} yet.</p>}
+            {itemsInGroup.map(({it,idx})=>(
+              <div key={it.id||idx} style={{...card,marginTop:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:15,fontWeight:600,letterSpacing:"-0.011em",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.name||"(unnamed)"}</span>
+                  {typePill(it.type)}
+                  <div style={{flex:1}}/>
+                  <button type="button" onClick={()=>openAcct(idx)} style={{border:"1px solid var(--line)",background:"var(--field)",color:"var(--ink)",borderRadius:9,padding:"8px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Edit</button>
+                </div>
+                {(it.accountNo||(it.fields||[]).some(f=>f.label||f.value)||it.loginUrl||it.username)&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"14px 20px",marginTop:14}}>
+                    {acctField("Account / ID number",it.accountNo,`${idx}:acct`)}
+                    {(it.fields||[]).map((f,fi)=> f.value?<div key={fi}>{acctField(f.label||"Field",f.value,`${idx}:f${fi}`)}</div>:null)}
+                    {it.username?<div><span style={lblSm}>Username</span><div style={{fontSize:14}}>{it.username}</div></div>:null}
+                    {it.loginUrl?<div><span style={lblSm}>Login page</span><div style={{fontSize:14,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><a href={/^https?:\/\//.test(it.loginUrl)?it.loginUrl:`https://${it.loginUrl}`} target="_blank" rel="noreferrer" style={{color:"var(--slate)",textDecoration:"none"}}>{it.loginUrl.replace(/^https?:\/\//,"")}</a></div></div>:null}
+                  </div>
+                )}
+                {it.notes&&<div style={{marginTop:14,paddingTop:12,borderTop:"1px solid var(--hair)",fontSize:13,color:"var(--muted)",lineHeight:1.5}}><span style={{color:"var(--ink)",fontWeight:600}}>Notes:</span> {it.notes}</div>}
+              </div>
+            ))}
+            {activeGroup&&<button onClick={()=>addAccount(activeGroup)} style={{...btn,background:"var(--accent-weak)",color:"var(--slate)",marginTop:12}}>+ Add account to {activeGroup}</button>}
+
+            <button onClick={saveAccounts} style={{...btn,background:"var(--ink)",marginTop:20}}>Save changes</button>
+            {acctMsg&&<p style={{fontSize:13,color:acctMsg.startsWith("Saved")?"var(--good)":"#e5484d",textAlign:"center",marginTop:8}}>{acctMsg}</p>}
+          </div>
+
+          <aside className="detailPanel" style={{width:360,flexShrink:0,position:"sticky",top:80}}>
+            <div style={{border:"1px solid var(--line)",borderRadius:12,background:"var(--card)",padding:16,minHeight:120}}>
+              {sel!=null? renderAcctForm(sel) : (
+                <div style={{textAlign:"center",color:"var(--faint)",padding:"28px 8px"}}>
+                  <div style={{fontSize:24,marginBottom:8}}>🗂️</div>
+                  <div style={{fontSize:13}}>Select an account to view and edit its details, or add one.</div>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        {/* Mobile bottom sheet */}
+        {acctSheet&&sel!=null&&(
+          <div style={{position:"fixed",inset:0,zIndex:45,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+            <div onClick={()=>setAcctSheet(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)"}}/>
+            <div style={{position:"relative",background:"var(--card)",borderTopLeftRadius:18,borderTopRightRadius:18,borderTop:"1px solid var(--line)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+              <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",flexShrink:0}}><div style={{width:40,height:4,borderRadius:999,background:"var(--line)"}}/></div>
+              <div style={{overflowY:"auto",padding:"6px 16px 16px"}}>{renderAcctForm(sel)}</div>
+              <div style={{display:"flex",gap:8,padding:"12px 16px calc(12px + env(safe-area-inset-bottom))",borderTop:"1px solid var(--line)",flexShrink:0}}>
+                <button onClick={()=>setAcctSheet(false)} style={{...btn,background:"var(--field)",color:"var(--ink)",border:"1px solid var(--line)",marginTop:0,width:"auto",padding:"13px 18px"}}>Close</button>
+                <button onClick={closeAndSave} style={{...btn,background:"var(--ink)",marginTop:0,flex:1}}>Save account</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderBilling=()=>{
     const pill=(bg,line,fg,dot,text)=>(<span style={{display:"inline-flex",alignItems:"center",gap:6,height:20,padding:"0 8px",borderRadius:999,background:bg,border:"1px solid "+line,color:fg,fontSize:11,fontWeight:600}}><span style={{width:5,height:5,borderRadius:999,background:dot}}/>{text}</span>);
     const statusPill=(isApproved,hasReading,paid)=> paid
@@ -1068,6 +1266,7 @@ export default function Admin(){
       billing:<path d="M4 4h16v16l-2.5-1.6L15 20l-3-1.6L9 20l-2.5-1.6L4 20V4Z M8.5 9h7 M8.5 13h4"/>,
       manage:<g><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0 M16 5.5a3 3 0 0 1 0 5.6 M17.5 19a5 5 0 0 0-2-4"/></g>,
       staff:<g><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7 M3 12h18"/></g>,
+      accounts:<g><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18 M7 15h4"/></g>,
     }[name];
     return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{c}</svg>;
   };
@@ -1171,6 +1370,7 @@ export default function Admin(){
             <button className={"navitem"+(view==="billing"?" active":"")} onClick={()=>setView("billing")}><NavIcon name="billing"/>Billing</button>
             <button className={"navitem"+(view==="manage"?" active":"")} onClick={openManage}><NavIcon name="manage"/>Tenants</button>
             <button className={"navitem"+(view==="staff"?" active":"")} onClick={openStaff}><NavIcon name="staff"/>House help</button>
+            <button className={"navitem"+(view==="accounts"?" active":"")} onClick={openAccounts}><NavIcon name="accounts"/>Accounts</button>
           </div>
           {propsForNav&&(
             <>
@@ -1199,7 +1399,7 @@ export default function Admin(){
 
         <div className="maincol">
           <div className="topbar">
-            <h1 style={{fontSize:16,fontWeight:600,letterSpacing:"-0.014em",margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Tenants":view==="settlement"?"Move-out":"House help"}</h1>
+            <h1 style={{fontSize:16,fontWeight:600,letterSpacing:"-0.014em",margin:0,color:"var(--ink)"}}>{view==="billing"?"Billing":view==="manage"?"Tenants":view==="settlement"?"Move-out":view==="accounts"?"Accounts":"House help"}</h1>
             {(view==="billing"||view==="staff")&&<MonthStepper/>}
             <div style={{flex:1}}/>
             <ThemeBtn/>
@@ -1210,7 +1410,7 @@ export default function Admin(){
               <div className="mobileSummary"><CollectionSummary/></div>
             )}
             <div className="contentmain">
-              {view==="settlement"?renderSettlement():view==="billing"?renderBilling():view==="manage"?renderManage():renderStaff()}
+              {view==="settlement"?renderSettlement():view==="billing"?renderBilling():view==="manage"?renderManage():view==="accounts"?renderAccounts():renderStaff()}
             </div>
             {view==="billing"&&data&&(
               <aside className="rail">
@@ -1239,6 +1439,7 @@ export default function Admin(){
             <button className={"navbtn"+(view==="billing"?" active":"")} onClick={()=>setView("billing")}><NavIcon name="billing"/>Billing</button>
             <button className={"navbtn"+(view==="manage"?" active":"")} onClick={openManage}><NavIcon name="manage"/>Tenants</button>
             <button className={"navbtn"+(view==="staff"?" active":"")} onClick={openStaff}><NavIcon name="staff"/>House help</button>
+            <button className={"navbtn"+(view==="accounts"?" active":"")} onClick={openAccounts}><NavIcon name="accounts"/>Accounts</button>
           </nav>
         </div>
 
