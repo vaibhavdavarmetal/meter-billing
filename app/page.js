@@ -353,8 +353,8 @@ function TenantForm() {
           {preview && <img src={preview} alt="meter" style={{ width: "100%", borderRadius: 10, margin: "14px 0", border: "1px solid var(--line)" }} />}
           {stage === "confirm" && (
             <div>
-              <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Please type the final number shown on your meter.</p>
-              <label style={fieldLabel}>Final meter number</label>
+              <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Now type your final reading <strong>exactly as it shows in the photo above</strong> — the same digits, in the same order.</p>
+              <label style={fieldLabel}>Final reading (match your photo)</label>
               <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 8720" />
               {err && <p style={{ color: "#e5484d", fontSize: 14 }}>{err}</p>}
               <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
@@ -616,8 +616,8 @@ function TenantForm() {
 
         {stage === "confirm" && (
           <div>
-            <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Please type the number shown on your meter.</p>
-            <label style={fieldLabel}>Meter number</label>
+            <p style={{ color: "var(--fg)", fontWeight: 500, fontSize: 14, marginTop: 16 }}>Now type the reading <strong>exactly as it shows in the photo above</strong> — the same digits, in the same order.</p>
+            <label style={fieldLabel}>Meter reading (match your photo)</label>
             <input inputMode="numeric" value={reading} onChange={(e) => setReading(e.target.value.replace(/[^0-9.]/g, ""))} style={input} placeholder="e.g. 4521" />
             {err && <p style={{ color: "#e5484d", fontSize: 14 }}>{err}</p>}
             <button onClick={requestSubmit} disabled={submitting} style={{ ...submitBtn, opacity: submitting ? 0.85 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
