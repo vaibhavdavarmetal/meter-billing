@@ -28,7 +28,14 @@ export async function GET(req) {
   const carryIn = {};
   await Promise.all(ids.map(async (id) => {
     const last = await getLatestStaffEntryBefore(period, id);
-    carryIn[id] = last && last.outstanding != null ? last.outstanding : 0;
+    if (last && last.outstanding != null) {
+      carryIn[id] = last.outstanding;
+    } else {
+      // No prior month recorded — seed from the opening advance the owner set.
+      // An advance (she owes work) is a negative balance; positive = owner owes her.
+      const adv = Number(staff.find((s) => s.id === id)?.advance) || 0;
+      carryIn[id] = -adv;
+    }
   }));
 
   return Response.json({ period, staff, entries, carryIn });
@@ -47,6 +54,7 @@ export async function POST(req) {
         id: s.id || newId(),
         name: s.name || "Unnamed",
         salary: Number(s.salary) || 0,
+        advance: Number(s.advance) || 0, // opening advance she owes (seeds the first month's balance)
       }));
       await saveStaff(list);
       return Response.json({ ok: true, staff: list });

@@ -241,7 +241,17 @@ export default function Admin(){
         };
       });
       setStaffEntries(ent);
-      const sp={}; (d.staff||[]).forEach((s)=>{ const e=d.entries&&d.entries[s.id]; if(e&&e.paidAmount!=null) sp[s.id]=String(e.paidAmount); });
+      // Pre-fill "amount paid" with what's payable this month: full due when you owe her,
+      // 0 when there's still an advance to work off. Owner confirms or overrides.
+      const sp={}; (d.staff||[]).forEach((s)=>{
+        const e=d.entries&&d.entries[s.id];
+        if(e&&e.paidAmount!=null){ sp[s.id]=String(e.paidAmount); return; }
+        const sal=e&&e.salary!=null?Number(e.salary):(Number(s.salary)||0);
+        const ex=e&&e.extra?Number(e.extra):0, ded=e&&e.deduction?Number(e.deduction):0;
+        const carry=Number((d.carryIn&&d.carryIn[s.id])||0);
+        const due=sal+ex-ded+carry;
+        sp[s.id]= due>0 ? String(Math.round(due)) : "0";
+      });
       setStaffPaid(sp);
     }catch{ setStaffMsg("Could not load house help."); }
   };
@@ -342,10 +352,14 @@ export default function Admin(){
     if(!staff) return <p style={{color:"var(--muted)"}}>{staffMsg||"Loading house help…"}</p>;
     const addStaff=async()=>{ const list=[...(staff||[]),{id:"",name:"New helper",salary:0}]; await saveStaffList(list); await loadStaff(); };
     const removeStaff=async(id)=>{ if(!window.confirm("Remove this helper? Past records stay saved.")) return; const list=(staff||[]).filter(s=>s.id!==id); await saveStaffList(list); await loadStaff(); };
-    const renameStaff=(id,field,val)=> setStaff(staff.map(s=>s.id===id?{...s,[field]:val}:s));
+    const renameStaff=(id,field,val)=> setStaff(cur=>cur.map(s=>s.id===id?{...s,[field]:val}:s));
+    // Save from the LATEST state (avoids a stale closure when typing then blurring quickly).
+    const persistStaffList=()=> setStaff(cur=>{ saveStaffList(cur); return cur; });
+    // Settings that change the running balance / pre-fill (salary, advance): save then reload.
+    const persistStaffSettings=()=> setStaff(cur=>{ saveStaffList(cur).then(()=>loadStaff()); return cur; });
     return (
       <>
-        <p style={{fontSize:13,color:"var(--muted)"}}>Track monthly pay for house help. Salary + extra − deduction + last month's balance = amount due. Enter what you actually paid; any difference carries to next month.</p>
+        <p style={{fontSize:13,color:"var(--muted)"}}>Track monthly pay for house help. Set a monthly salary and any opening advance she already owes. Each month, salary works off the advance; enter the cash you actually paid and the balance carries forward — shown as <strong style={{color:"var(--ink)"}}>advance she owes</strong> or <strong style={{color:"var(--ink)"}}>you owe her</strong>.</p>
         {staff.length===0&&<p style={{fontSize:14,color:"var(--muted)"}}>No house help added yet.</p>}
         {staff.map((s)=>{
           const e=staffEntries[s.id]||{salary:"",extra:"",deduction:"",paid:false};
@@ -357,21 +371,26 @@ export default function Admin(){
           return (
             <div key={s.id} style={{...card}}>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
-                <input value={s.name} onChange={e=>renameStaff(s.id,"name",e.target.value)} onBlur={()=>saveStaffList(staff)} style={{...inp,fontWeight:700,flex:1}}/>
+                <input value={s.name} onChange={e=>renameStaff(s.id,"name",e.target.value)} onBlur={persistStaffList} style={{...inp,fontWeight:700,flex:1}}/>
                 <button onClick={()=>removeStaff(s.id)} style={{...btn,background:"var(--card)",color:"#e5484d",border:"1px solid var(--line)",width:"auto",padding:"10px 12px",marginTop:0}}>Remove</button>
               </div>
-              {carry!==0&&<div style={{fontSize:13,marginBottom:8,color:carry>0?"var(--accent)":"var(--good)"}}>{carry>0?`Owed from last month: +${money(carry)}`:`Advance from last month: ${money(carry)}`}</div>}
+              {/* Helper settings: standing monthly salary + opening advance (used until the first month is saved) */}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
+                <div style={{flex:"1 1 130px"}}><label style={lblSm}>Monthly salary ₹</label><input inputMode="numeric" value={s.salary?String(s.salary):""} onChange={e=>renameStaff(s.id,"salary",e.target.value.replace(/[^0-9.]/g,""))} onBlur={persistStaffList} style={inpSm} placeholder="0"/></div>
+                <div style={{flex:"1 1 170px"}}><label style={lblSm}>Opening advance (she owes) ₹</label><input inputMode="numeric" value={s.advance?String(s.advance):""} onChange={e=>renameStaff(s.id,"advance",e.target.value.replace(/[^0-9.]/g,""))} onBlur={persistStaffSettings} style={inpSm} placeholder="0"/></div>
+              </div>
+              {carry!==0&&<div style={{fontSize:13,marginBottom:8,fontWeight:600,color:carry<0?"var(--good)":"var(--accent)"}}>{carry<0?`Advance she owes (carried in): ${money(-carry)}`:`You owe her (carried in): ${money(carry)}`}</div>}
               <div style={{display:"flex",gap:8}}>
-                <div style={{flex:1}}><label style={lblSm}>Salary ₹</label><input inputMode="numeric" value={e.salary} onChange={ev=>setStaffField(s.id,"salary",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="0"/></div>
+                <div style={{flex:1}}><label style={lblSm}>Salary this month ₹</label><input inputMode="numeric" value={e.salary} onChange={ev=>setStaffField(s.id,"salary",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder={s.salary?String(s.salary):"0"}/></div>
                 <div style={{flex:1}}><label style={lblSm}>Extra ₹</label><input inputMode="numeric" value={e.extra} onChange={ev=>setStaffField(s.id,"extra",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="0"/></div>
                 <div style={{flex:1}}><label style={lblSm}>Deduct ₹</label><input inputMode="numeric" value={e.deduction} onChange={ev=>setStaffField(s.id,"deduction",ev.target.value.replace(/[^0-9.]/g,""))} style={inpSm} placeholder="0"/></div>
               </div>
-              <input value={e.extraNote} onChange={ev=>setStaffField(s.id,"extraNote",ev.target.value)} style={{...inpSm,marginTop:6}} placeholder="Note for extra/advance (optional)"/>
+              <input value={e.extraNote} onChange={ev=>setStaffField(s.id,"extraNote",ev.target.value)} style={{...inpSm,marginTop:6}} placeholder="Note for extra/bonus (optional)"/>
               <input value={e.deductionNote} onChange={ev=>setStaffField(s.id,"deductionNote",ev.target.value)} style={{...inpSm,marginTop:6}} placeholder="Note for deduction (optional)"/>
-              <div style={{fontSize:14,margin:"10px 0 8px"}}>Amount due: <strong>{money(due)}</strong> <span style={{fontSize:12,color:"var(--muted)"}}>(salary {money(salary)}{extra?` + extra ${money(extra)}`:""}{deduction?` − deduct ${money(deduction)}`:""}{carry?` ${carry>0?"+":"−"} bal ${money(Math.abs(carry))}`:""})</span></div>
-              <label style={lblSm}>Amount actually paid ₹</label>
-              <input inputMode="numeric" value={staffPaid[s.id]??""} onChange={ev=>setStaffPaid({...staffPaid,[s.id]:ev.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.round(due))}/>
-              {pa!=null&&<div style={{fontSize:12,marginTop:4,color:out>0?"var(--accent)":out<0?"var(--good)":"var(--muted)"}}>{out>0?`Short ${money(out)} — carries to next month`:out<0?`Paid extra ${money(-out)} — advance next month`:"Settled exactly"}</div>}
+              <div style={{fontSize:14,margin:"10px 0 8px"}}>{due>=0?<>Amount due: <strong>{money(due)}</strong></>:<>After this month's salary she still owes: <strong>{money(-due)}</strong> <span style={{color:"var(--good)"}}>(advance)</span></>} <span style={{fontSize:12,color:"var(--muted)"}}>(salary {money(salary)}{extra?` + extra ${money(extra)}`:""}{deduction?` − deduct ${money(deduction)}`:""}{carry?` ${carry>0?"+":"−"} bal ${money(Math.abs(carry))}`:""})</span></div>
+              <label style={lblSm}>Amount actually paid ₹ <span style={{textTransform:"none",letterSpacing:0,color:"var(--faint)",fontWeight:400}}>— cash given (pre-filled; type more to give advance)</span></label>
+              <input inputMode="numeric" value={staffPaid[s.id]??""} onChange={ev=>setStaffPaid({...staffPaid,[s.id]:ev.target.value.replace(/[^0-9.]/g,"")})} style={inpSm} placeholder={String(Math.max(0,Math.round(due)))}/>
+              {pa!=null&&<div style={{fontSize:13,marginTop:4,fontWeight:600,color:out<0?"var(--good)":out>0?"var(--accent)":"var(--muted)"}}>{out<0?`Advance she owes now: ${money(-out)} — carries forward`:out>0?`You owe her: ${money(out)} — carries forward`:"Settled exactly"}</div>}
               <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12}}>
                 <button onClick={()=>saveStaffEntry(s)} style={{...btn,background:"var(--slate)",marginTop:0}}>Save {label(period)}</button>
                 <div style={{marginLeft:"auto"}}><button type="button" onClick={()=>setStaffField(s.id,"paid",!e.paid)} style={{border:"1px solid var(--line)",background:e.paid?"var(--good)":"var(--field)",color:e.paid?"#fff":"var(--muted)",borderRadius:20,padding:"7px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{e.paid?"✓ Paid":"Mark paid"}</button></div>
