@@ -1095,7 +1095,7 @@ export default function Admin(){
 
             if(saved && ex.paid){
               return (
-                <div key={t.slug} style={{...card,borderColor:"var(--good-line)",marginTop:12}}>
+                <div key={t.slug} style={{...card,borderColor:"var(--hair)",marginTop:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><strong>{t.name}</strong>{statusPill(true,true,true)}</div>
                     <span style={{fontSize:18,fontWeight:600,color:"var(--good)"}}>{money(saved.amount)}</span>
@@ -1117,7 +1117,7 @@ export default function Admin(){
 
             const open=!!expandedBill[t.slug];
             return (
-              <div key={t.slug} style={{...card,padding:0,overflow:"hidden",marginTop:12}}>
+              <div key={t.slug} style={{...card,borderColor:"var(--hair)",padding:0,overflow:"hidden",marginTop:12}}>
                 <div onClick={()=>openDetail(t.slug)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
